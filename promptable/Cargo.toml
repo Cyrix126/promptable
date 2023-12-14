@@ -1,0 +1,15 @@
+[package]
+name = "promptable"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+inquire = { git = "https://github.com/Cyrix126/inquire-time", optional = true}
+time = {version = "0.3", optional = true}
+termion = {version = "2"}
+promptable_derive = {path = "../promptable_derive", optional = true}
+syn = "2"
+ [features]
+default = ["inquire", "time", "promptable_derive"]
