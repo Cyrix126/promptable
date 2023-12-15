@@ -13,3 +13,4 @@
 - [ ] support for other prompt backend (instead of inquire)
 - [ ] support for other terminal backend (instead of termion)
 - [ ] add metadata for cargo
+- [ ] learn how to organize the two crates

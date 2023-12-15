@@ -8,6 +8,7 @@ use syn::{self, Data, Type};
 #[derive(FromAttributes)]
 #[darling(attributes(promptable))]
 struct Opts {
+    default: Option<bool>,
     name: Option<String>,
     visible: Option<bool>,
     msg: Option<String>,
@@ -62,7 +63,13 @@ fn impl_promptable(ast: &syn::DeriveInput) -> TokenStream {
                 true
             }
         };
-        if visible && !is_option(ty) {
+        if let Some(default) = opts.default {
+            if default {
+                field_values.push(quote! {
+                    #ident: #ty::default()
+                });
+            }
+        } else if visible && !is_option(ty) {
             field_values.push(quote! {
                 #ident: #ty::new_by_prompt(#msg)
             });
@@ -117,8 +124,7 @@ fn impl_promptable(ast: &syn::DeriveInput) -> TokenStream {
     // récupérer les champs
 
     let generation = quote! {
-        use promptable::Promptable;
-        impl Promptable for #nom {
+        impl promptable::Promptable for #nom {
             fn new_by_prompt(_msg: &str) -> #nom {
                 #nom {
                     // effectuer new_prompt à tout champs non Option. Mettre null aux champs Option.
@@ -126,13 +132,12 @@ fn impl_promptable(ast: &syn::DeriveInput) -> TokenStream {
                 }
             }
             fn modify_by_prompt(&mut self, msg: &str) {
-                use inquire::Select;
                 let mut last_choice = 0;
                 loop {
                 promptable::clear_screen();
                 let mut options = vec![];
                 #( #fields_options );*;
-                let choix = Select::new(msg, options.clone()).with_starting_cursor(last_choice).prompt().unwrap();
+                let choix = inquire::Select::new(msg, options.clone()).with_starting_cursor(last_choice).prompt().unwrap();
                 #( #choix_action)*
                 }
 

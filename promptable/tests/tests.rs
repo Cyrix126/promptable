@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod tests {
     use promptable::clear_screen;
+    use promptable::Promptable;
     use promptable_derive::Promptable;
     use time::Date;
     #[derive(Promptable)]

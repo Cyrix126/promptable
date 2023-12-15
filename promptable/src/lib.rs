@@ -1,7 +1,7 @@
 use inquire::{Confirm, CustomType, DateSelect, Text};
+pub extern crate promptable_derive;
 use termion::{clear::All, cursor::Goto};
 use time::{Date, OffsetDateTime};
-
 pub fn clear_screen() {
     println!("{}{}", All, Goto(1, 1));
 }
