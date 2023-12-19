@@ -26,8 +26,16 @@ With the trait Promptable, you have two methods. One for creating a new value an
 
 ### Example:
 
-```
-let mut anwser = Bool::new_by_prompt("Do you agree ?");
+```rust,no_run
+use promptable::Promptable;
+let mut anwser = bool::new_by_prompt("Do you agree ?");
 anwser.modify_by_prompt("Are you sure ?");
 let age = i32::new_by_prompt("What is your age ?");
+```
+
+You can see more examples in the /examples folder.  
+You can run them with:  
+
+```bash,ignore
+cargo run --example name_example
 ```
