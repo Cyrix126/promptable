@@ -11,7 +11,8 @@ All structs using this derive trait must also implement the trait Clone and Disp
 - ##### `#[promp(params = String)]`
 
 Transfer the signature to the trait and method to be able to use functions with parameters inside methods. Use with field attribut function_new or function_mod.
-
+Put here every parameters that will be needed for the functions to be executed inside the methods.
+If you have two attributs with functions, except if you want the same parameter to be passed, you need to put all the parameters for each function.
 
 - ##### `#[promp(msg_mod = String)]`
 
@@ -30,7 +31,7 @@ What name to be displayed on various prompt.
 
 - ##### `#[promptable(visible = bool)]`
 
-Is the field asked when created. If the field is Option, the value will be None. If the field is a type, it will be the default. The difference with default attribut is that the field will never be asked even if the struct is modified.
+Is the field proposed on menu and creation. If the field is Option, the value will be None. If the field is a type, it will be the default. The difference with default attribut is that the field will never be asked even if the struct is modified.
 
 - ##### `#[promptable(msg = String)]` 
 
@@ -43,6 +44,11 @@ Calls the function described as String instead of promptable::Promptable::new_by
 - ##### `#[promptable(function_mod = String)]`
 
 Calls the function described as String instead of promptable::Promptable::modify_by_prompt() for this field while modifying an instance of this struct.
+
+- ##### `#[promptable(function_add = String)]`
+
+Calls the function described as String instead of promptable::Promptable::new_by_prompt() for this field while adding an instance of this struct on a Vec. This function can use self to use the vec. Refer to the example "complex_form" to see it in action.
+
 
 - ##### `#[promptable(multiple_once = String)]`
 

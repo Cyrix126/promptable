@@ -9,14 +9,14 @@ the crate promptable_derive bring the declarative macro.
 
 This declarative macro when used on structs, will crate two new traits:
 
-```
+```rust,ignore
         trait #trait_name {
                fn new_by_prompt(#params) -> #nom;
                fn modify_by_prompt(&mut self, #params);
         }
 ```
 
-```
+```rust,ignore
         trait #trait_name_multiple {
             fn ajout(&mut self, #params);
             fn delete(&mut self);
@@ -32,14 +32,14 @@ It will implement them on the struct of type T and Vec\<T\>, depending of the ty
 
 ##### for T
 
-```
+```rust,ignore
 fn new_by_prompt(#params) -> #nom;
 ```
 
 This method will construct the struct, prompting each fields by default with their implementation of the [Promptable](../promptable::Promptable) trait.  
 This behavior can be overriden by attributs.
 
-```
+```rust,ignore
 fn modify_by_prompt(&mut self, #params); 
 ```
 
@@ -47,7 +47,7 @@ This method will allow the values of the struct to be selected and modified in a
 
 ##### for Vec\<T\>
 
-```
+```rust,ignore
 fn multiple_new_by_prompt(#params) -> Vec<#nom>;
 ```
 
