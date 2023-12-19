@@ -5,7 +5,7 @@ use promptable_derive::Promptable;
 use time::Date;
 #[derive(Promptable, Clone)]
 #[prompt(msg_mod = "Select the field to modify the Prestation")]
-#[prompt(params = "msg_search: &str, msg_editor: &str, clients: &Vec<String>")]
+#[prompt(params = "msg_search: &str, msg_editor: &str, clients: &[String]")]
 struct Prestation {
     #[promptable(visible = false)]
     #[promptable(function_add = "increment(self.last().unwrap().id)")]
@@ -30,8 +30,10 @@ impl Display for Prestation {
 fn increment(a: u32) -> u32 {
     a + 1
 }
-fn search_client(msg_search: &str, clients: &Vec<String>) -> String {
-    Select::new(msg_search, clients.clone()).prompt().unwrap()
+fn search_client(msg_search: &str, clients: &[String]) -> String {
+    Select::new(msg_search, clients.to_owned())
+        .prompt()
+        .unwrap()
 }
 
 fn editor(msg_editor: &str) -> String {

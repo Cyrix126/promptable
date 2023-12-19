@@ -103,11 +103,11 @@ impl Promptable for String {
     fn new_by_prompt(msg: &str) -> Self {
         clear_screen();
         let resp = Text::new(msg).prompt().unwrap();
-        return resp;
+        resp
     }
     fn modify_by_prompt(&mut self, msg: &str) {
         clear_screen();
-        *self = Text::new(msg).with_initial_value(&self).prompt().unwrap();
+        *self = Text::new(msg).with_initial_value(self).prompt().unwrap();
     }
 }
 /// String can be used with the Text type of inquire
@@ -115,13 +115,13 @@ impl Promptable for Option<String> {
     fn new_by_prompt(msg: &str) -> Self {
         clear_screen();
         let resp = Text::new(msg).prompt_skippable().unwrap();
-        return resp;
+        resp
     }
     fn modify_by_prompt(&mut self, msg: &str) {
         clear_screen();
         if let Some(s) = self {
             *self = Text::new(msg)
-                .with_initial_value(&s)
+                .with_initial_value(s)
                 .prompt_skippable()
                 .unwrap();
         } else {
@@ -135,7 +135,7 @@ impl Promptable for bool {
     ///
     fn new_by_prompt(msg: &str) -> Self {
         let resp = Confirm::new(msg).prompt().unwrap();
-        return resp;
+        resp
     }
     ///
     fn modify_by_prompt(&mut self, msg: &str) {
@@ -151,7 +151,7 @@ impl Promptable for Date {
             .with_week_start(time::Weekday::Monday)
             .prompt()
             .unwrap();
-        return date;
+        date
     }
     fn modify_by_prompt(&mut self, msg: &str) {
         clear_screen();
@@ -172,7 +172,7 @@ impl Promptable for Option<Date> {
             .with_week_start(time::Weekday::Monday)
             .prompt_skippable()
             .unwrap();
-        return date;
+        date
     }
     fn modify_by_prompt(&mut self, msg: &str) {
         clear_screen();
