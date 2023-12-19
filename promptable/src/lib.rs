@@ -13,6 +13,14 @@ pub fn clear_screen() {
 }
 
 /// This trait is implemented for some basic types.
+///# Example
+///```rust,no_run
+///
+///use time::Date;
+///use promptable::Promptable;
+///let mut anwser = Date::new_by_prompt("choose the date");
+///anwser.modify_by_prompt("change the date");
+///```
 pub trait Promptable {
     /// method to create a value.
     fn new_by_prompt(msg: &str) -> Self;
@@ -28,29 +36,30 @@ macro_rules! impl_promptable {
         impl Promptable for $t {
             /// ask to create a new value, msg can transmit the message of the prompt.
             fn new_by_prompt(msg: &str) -> Self {
-                let resp = CustomType::<$t>::new(msg).prompt().unwrap();
                 clear_screen();
+                let resp = CustomType::<$t>::new(msg).prompt().unwrap();
                 return resp;
             }
             /// ask to modify the value, msg can transmit the message of the prompt.
             fn modify_by_prompt(&mut self, msg: &str) {
+                clear_screen();
                 *self = CustomType::<$t>::new(msg)
                     .with_default(self.clone())
                     .with_placeholder(&self.to_string())
                     .prompt()
                     .unwrap();
-                clear_screen();
             }
         }
         impl Promptable for Option<$t> {
             /// ask to optionnaly create a value, msg can transmit the message of the prompt.
             fn new_by_prompt(msg: &str) -> Self {
-                let resp = CustomType::<$t>::new(msg).prompt_skippable().unwrap();
                 clear_screen();
+                let resp = CustomType::<$t>::new(msg).prompt_skippable().unwrap();
                 return resp;
             }
             /// ask to modify a value, can return None, msg can transmit the message of the prompt.
             fn modify_by_prompt(&mut self, msg: &str) {
+                clear_screen();
                 if let Some(s) = self {
                     let resp = CustomType::<$t>::new(msg)
                         .with_default(s.clone())
@@ -62,7 +71,6 @@ macro_rules! impl_promptable {
                     let resp = CustomType::<$t>::new(msg).prompt_skippable().unwrap();
                     *self = resp;
                 }
-                clear_screen();
             }
         }
     };
@@ -93,23 +101,24 @@ macro_rules! impl_promptable {
 /// String can be used with the Text type of inquire
 impl Promptable for String {
     fn new_by_prompt(msg: &str) -> Self {
-        let resp = Text::new(msg).prompt().unwrap();
         clear_screen();
+        let resp = Text::new(msg).prompt().unwrap();
         return resp;
     }
     fn modify_by_prompt(&mut self, msg: &str) {
-        *self = Text::new(msg).with_initial_value(&self).prompt().unwrap();
         clear_screen();
+        *self = Text::new(msg).with_initial_value(&self).prompt().unwrap();
     }
 }
 /// String can be used with the Text type of inquire
 impl Promptable for Option<String> {
     fn new_by_prompt(msg: &str) -> Self {
-        let resp = Text::new(msg).prompt_skippable().unwrap();
         clear_screen();
+        let resp = Text::new(msg).prompt_skippable().unwrap();
         return resp;
     }
     fn modify_by_prompt(&mut self, msg: &str) {
+        clear_screen();
         if let Some(s) = self {
             *self = Text::new(msg)
                 .with_initial_value(&s)
@@ -119,7 +128,6 @@ impl Promptable for Option<String> {
             let resp = Text::new(msg).prompt_skippable().unwrap();
             *self = resp;
         }
-        clear_screen();
     }
 }
 /// bool can be used with the Confirm type of inquire
@@ -127,53 +135,52 @@ impl Promptable for bool {
     ///
     fn new_by_prompt(msg: &str) -> Self {
         let resp = Confirm::new(msg).prompt().unwrap();
-        clear_screen();
         return resp;
     }
     ///
     fn modify_by_prompt(&mut self, msg: &str) {
-        *self = Confirm::new(msg).with_default(*self).prompt().unwrap();
         clear_screen();
+        *self = Confirm::new(msg).with_default(*self).prompt().unwrap();
     }
 }
 impl Promptable for Date {
     fn new_by_prompt(msg: &str) -> Self {
+        clear_screen();
         let date = DateSelect::new(msg)
             .with_starting_date(OffsetDateTime::now_utc().date())
             .with_week_start(time::Weekday::Monday)
             .prompt()
             .unwrap();
-        clear_screen();
         return date;
     }
     fn modify_by_prompt(&mut self, msg: &str) {
+        clear_screen();
         *self = DateSelect::new(msg)
             .with_starting_date(OffsetDateTime::now_utc().date())
             .with_week_start(time::Weekday::Monday)
             .prompt()
             .unwrap();
-        clear_screen();
     }
 }
 
 /// Date can be used with the DateSelect type of inquire
 impl Promptable for Option<Date> {
     fn new_by_prompt(msg: &str) -> Self {
+        clear_screen();
         let date = DateSelect::new(msg)
             .with_starting_date(OffsetDateTime::now_utc().date())
             .with_week_start(time::Weekday::Monday)
             .prompt_skippable()
             .unwrap();
-        clear_screen();
         return date;
     }
     fn modify_by_prompt(&mut self, msg: &str) {
+        clear_screen();
         *self = DateSelect::new(msg)
             .with_starting_date(OffsetDateTime::now_utc().date())
             .with_week_start(time::Weekday::Monday)
             .prompt_skippable()
             .unwrap();
-        clear_screen();
     }
 }
 
