@@ -228,20 +228,16 @@ fn impl_promptable(ast: &syn::DeriveInput) -> TokenStream {
         "Sélectionnez le champ à modifier ou valider"
     };
 
-    let vec_name: proc_macro2::TokenStream = format!("PromptableVec{}", nom).parse().unwrap();
-
+    let vec_name: proc_macro2::TokenStream = format!("Vec{}", nom).parse().unwrap();
+    let trait_name: proc_macro2::TokenStream = format!("Promptable{}", nom).parse().unwrap();
+    let trait_name_multiple: proc_macro2::TokenStream =
+        format!("PromptableVec{}", nom).parse().unwrap();
     let generation = quote! {
-                // trait #trait_name {
-                //         fn new_by_prompt(#params) -> #nom;
-               //         fn modify_by_prompt(&mut self, #params);
-                //      pub fn multiple_new_by_prompt(#params) -> Vec<#nom> ;
-                // }
-                // trait #trait_name_multiple {
-                //     fn ajout(self, #params);
-                //     fn remove(self) ;
-
-                // }
-                    impl #nom {
+                trait #trait_name {
+                        fn new_by_prompt(#params) -> #nom;
+                       fn modify_by_prompt(&mut self, #params);
+                }
+                    impl #trait_name for #nom {
                         fn new_by_prompt(#params) -> #nom {
                             #nom {
                                 // effectuer new_prompt à tout champs non Option. Mettre null aux champs Option.
@@ -274,7 +270,13 @@ fn impl_promptable(ast: &syn::DeriveInput) -> TokenStream {
             &mut self.0
         }
     }
-                    impl #vec_name {
+                trait #trait_name_multiple {
+                    fn ajout(&mut self, #params);
+                    fn delete(&mut self);
+                    fn modify(&mut self, #params);
+                    fn multiple_new_by_prompt(#params) -> Vec<#nom>;
+                }
+                    impl #trait_name_multiple for #vec_name {
                     fn ajout(&mut self, #params) {
                      self.push(#nom {
                             #( #fields_multiple_add ),*
@@ -296,7 +298,7 @@ fn impl_promptable(ast: &syn::DeriveInput) -> TokenStream {
                         // self.push(to_modify);
                     }
 
-                     pub fn multiple_new_by_prompt(#params) -> Vec<#nom> {
+                      fn multiple_new_by_prompt(#params) -> Vec<#nom> {
 
                             let mut vec = #vec_name(vec![]);
                             vec.push(#nom::new_by_prompt(#lps));
