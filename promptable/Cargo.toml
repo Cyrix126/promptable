@@ -1,9 +1,18 @@
 [package]
 name = "promptable"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+description = "macro derive for promptable"
+publish = false # TODO
+repository = "https://github.com/Cyrix126/promptable"
+license = "GPL-3.0-only"
+readme = "README.md"
+documentation = "https://docs.rs/inquire"
+homepage = "https://github.com/Cyrix126/promptable"
+authors = ["Louis-Marie Baer <lm@baermail.fr>"]
+keywords = ["cli", "ask", "prompt", "question", "interactive", "derive"]
+categories = ["command-line-interface", "value-formatting", "derive"]
+include = ["./src"]
 
 [dependencies]
 inquire = { git = "https://github.com/Cyrix126/inquire-time", optional = true}
@@ -15,7 +24,8 @@ syn = "2"
 promptable = { version = "*", path = "../promptable" }
 
  [features]
-default = ["inquire", "time", "promptable_derive"]
+default = ["inquire/editor", "time", "promptable_derive"]
 
 [package.metadata.docs.rs]
 cargo-args = ["-Zunstable-options", "-Zrustdoc-scrape-examples"]
+
