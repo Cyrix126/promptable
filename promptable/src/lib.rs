@@ -1,26 +1,38 @@
+#![warn(missing_docs)]
+#![doc = include_str!("../README.md")]
+
 use inquire::{Confirm, CustomType, DateSelect, Text};
 pub extern crate promptable_derive;
 use termion::{clear::All, cursor::Goto};
 use time::{Date, OffsetDateTime};
+#[doc(hidden)]
+/// function using termion to clear the screen.
+/// Used often in the method of declarative macro.
 pub fn clear_screen() {
     println!("{}{}", All, Goto(1, 1));
 }
 
+/// This trait is implemented for some basic types.
 pub trait Promptable {
-    // Required method
+    /// method to create a value.
     fn new_by_prompt(msg: &str) -> Self;
+    /// modify the self value.
     fn modify_by_prompt(&mut self, msg: &str);
 }
 
-// use of CustomType to re-ask user if input is incorrect.
+#[doc(hidden)]
+/// macro to implement quicly the Promptable trait on basic types.
+/// use of CustomType to re-ask user if input is incorrect.
 macro_rules! impl_promptable {
     ($t:ty) => {
         impl Promptable for $t {
+            /// ask to create a new value, msg can transmit the message of the prompt.
             fn new_by_prompt(msg: &str) -> Self {
                 let resp = CustomType::<$t>::new(msg).prompt().unwrap();
                 clear_screen();
                 return resp;
             }
+            /// ask to modify the value, msg can transmit the message of the prompt.
             fn modify_by_prompt(&mut self, msg: &str) {
                 *self = CustomType::<$t>::new(msg)
                     .with_default(self.clone())
@@ -31,11 +43,13 @@ macro_rules! impl_promptable {
             }
         }
         impl Promptable for Option<$t> {
+            /// ask to optionnaly create a value, msg can transmit the message of the prompt.
             fn new_by_prompt(msg: &str) -> Self {
                 let resp = CustomType::<$t>::new(msg).prompt_skippable().unwrap();
                 clear_screen();
                 return resp;
             }
+            /// ask to modify a value, can return None, msg can transmit the message of the prompt.
             fn modify_by_prompt(&mut self, msg: &str) {
                 if let Some(s) = self {
                     let resp = CustomType::<$t>::new(msg)
@@ -76,6 +90,7 @@ macro_rules! impl_promptable {
 //     }
 // }
 
+/// String can be used with the Text type of inquire
 impl Promptable for String {
     fn new_by_prompt(msg: &str) -> Self {
         let resp = Text::new(msg).prompt().unwrap();
@@ -87,6 +102,7 @@ impl Promptable for String {
         clear_screen();
     }
 }
+/// String can be used with the Text type of inquire
 impl Promptable for Option<String> {
     fn new_by_prompt(msg: &str) -> Self {
         let resp = Text::new(msg).prompt_skippable().unwrap();
@@ -106,12 +122,15 @@ impl Promptable for Option<String> {
         clear_screen();
     }
 }
+/// bool can be used with the Confirm type of inquire
 impl Promptable for bool {
+    ///
     fn new_by_prompt(msg: &str) -> Self {
         let resp = Confirm::new(msg).prompt().unwrap();
         clear_screen();
         return resp;
     }
+    ///
     fn modify_by_prompt(&mut self, msg: &str) {
         *self = Confirm::new(msg).with_default(*self).prompt().unwrap();
         clear_screen();
@@ -136,6 +155,8 @@ impl Promptable for Date {
         clear_screen();
     }
 }
+
+/// Date can be used with the DateSelect type of inquire
 impl Promptable for Option<Date> {
     fn new_by_prompt(msg: &str) -> Self {
         let date = DateSelect::new(msg)

@@ -2,15 +2,14 @@
 
 ## Interface
 
-- [ ] for the menu, make the selection go back to last selected.
+- [x] for the menu, make the selection go back to last selected.
 
 ## Fonctionnality
 
-- [ ] for new_by_prompt() method, add possiblity to ask for an Option<T> but without forcing an anwser.
+- [x] for new_by_prompt() method, add possiblity to ask for an Option<T> but without forcing an anwser.
 
 ## For Public Release
 
-- [ ] support for other prompt backend (instead of inquire)
-- [ ] support for other terminal backend (instead of termion)
-- [ ] add metadata for cargo
-- [ ] learn how to organize the two crates
+- [ ] add metadata for cargo following [api guidelines](https://rust-lang.github.io/api-guidelines/documentation.html#cargotoml-includes-all-common-metadata-c-metadata)
+- [x] learn how to organize the two crates
+- [ ] write documentation for promptable and promptable_derive

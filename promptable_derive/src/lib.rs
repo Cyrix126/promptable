@@ -1,3 +1,6 @@
+#![warn(missing_docs)]
+#![doc = include_str!("../README.md")]
+
 use core::panic;
 use darling::FromAttributes;
 use proc_macro::TokenStream;
@@ -12,17 +15,18 @@ struct FieldOpts {
     visible: Option<bool>,
     msg: Option<String>,
     function_new: Option<String>,
-    function_modify: Option<String>, // self.ident peut-être utilisé
+    function_mod: Option<String>, // self.ident peut-être utilisé
     multiple_once: Option<bool>,
 }
 #[derive(FromAttributes, Debug)]
 #[darling(attributes(prompt))]
 struct StructOpts {
     params: Option<String>,
-    msg_modify: Option<String>,
+    msg_mod: Option<String>,
 }
 
-// #[proc_macro_derive(Promptable)]
+/// This is the derive trait to add to struct you want to be prompt-able.
+#[doc = include_str!("../doc/attributs_derive.md")]
 #[proc_macro_derive(Promptable, attributes(promptable, prompt))]
 pub fn promptable_macro_derive(input: TokenStream) -> TokenStream {
     // Construct a representation of Rust code as a syntax tree
@@ -105,9 +109,13 @@ fn impl_promptable(ast: &syn::DeriveInput) -> TokenStream {
             quote! {
             Some(<#inner as promptable::Promptable>::new_by_prompt(#msg))
             }
-        } else if !visible || is_option(ty) {
+        } else if !visible && is_option(ty) {
             quote! {
                 None
+            }
+        } else if !visible && !is_option(ty) {
+            quote! {
+                #ty::default()
             }
         } else {
             panic!("attribut non attendu")
@@ -116,45 +124,45 @@ fn impl_promptable(ast: &syn::DeriveInput) -> TokenStream {
         field_values_new.push(quote! {
             #ident: #value
         });
-
-        // modify_by_prompt
-        let prepare_value = if is_option(ty) {
-            quote! {
-            let value =
-            if let Some(v) = &self.#ident {
-                v.to_string()
+        if visible {
+            // mod_by_prompt
+            let prepare_value = if is_option(ty) {
+                quote! {
+                let value =
+                if let Some(v) = &self.#ident {
+                    v.to_string()
+                } else {
+                    String::from("None")
+                };
+                }
             } else {
-                String::from("None")
+                quote! {
+                    let value = &self.#ident;
+                }
             };
-            }
-        } else {
-            quote! {
-                let value = &self.#ident;
-            }
-        };
-
-        // préparer les choix
-        fields_options.push(quote! {
-            #prepare_value
-            options.push(format!("{}: {}", #name, value ))
-        });
-        // utiliser le choix
-        if let Some(fm) = &opts.function_modify {
-            let function_modify: proc_macro2::TokenStream = fm.parse().unwrap();
-            choix_action.push(quote! {
-                if choix == options[#nb] {
-                    last_choice = #nb;
-                    self.#ident = #function_modify
-                }
+            // préparer les choix
+            fields_options.push(quote! {
+                #prepare_value
+                options.push(format!("{}: {}", #name, value ))
             });
-        } else {
-            choix_action.push(quote! {
-                if choix == options[#nb] {
-                    last_choice = #nb;
-                    <#ty as promptable::Promptable>::modify_by_prompt(&mut self.#ident, #msg)
+            // utiliser le choix
+            if let Some(fm) = &opts.function_mod {
+                let function_mod: proc_macro2::TokenStream = fm.parse().unwrap();
+                choix_action.push(quote! {
+                    if choix == options[#nb] {
+                        last_choice = #nb;
+                        self.#ident = #function_mod
+                    }
+                });
+            } else {
+                choix_action.push(quote! {
+                    if choix == options[#nb] {
+                        last_choice = #nb;
+                        <#ty as promptable::Promptable>::mod_by_prompt(&mut self.#ident, #msg)
 
-                }
-            });
+                    }
+                });
+            }
         }
 
         // ajout sur multiple
@@ -173,14 +181,14 @@ fn impl_promptable(ast: &syn::DeriveInput) -> TokenStream {
 
         if opts.multiple_once.is_some_and(|c| c) {
             fields_multiple_add.push(quote! {
-               #ident: self.0.#ident
+               #ident: self[0].#ident
             })
         } else {
             fields_multiple_add.push(quote! {
                 #ident: #value
             });
         }
-        // multiple modify
+        // multiple mod
     }
 
     fields_options.push(quote! {
@@ -222,120 +230,95 @@ fn impl_promptable(ast: &syn::DeriveInput) -> TokenStream {
     chars.next_back();
     let lps = chars.as_str();
     let lps: proc_macro2::TokenStream = lps.parse().unwrap();
-    let msg_modify = if let Some(msg) = &attrs_struct.msg_modify {
+    let msg_mod = if let Some(msg) = &attrs_struct.msg_mod {
         msg
     } else {
         "Sélectionnez le champ à modifier ou valider"
     };
 
-    let vec_name: proc_macro2::TokenStream = format!("Vec{}", nom).parse().unwrap();
     let trait_name: proc_macro2::TokenStream = format!("Promptable{}", nom).parse().unwrap();
     let trait_name_multiple: proc_macro2::TokenStream =
         format!("PromptableVec{}", nom).parse().unwrap();
     let generation = quote! {
-                trait #trait_name {
-                        fn new_by_prompt(#params) -> #nom;
-                       fn modify_by_prompt(&mut self, #params);
-                }
-                    impl #trait_name for #nom {
-                        fn new_by_prompt(#params) -> #nom {
-                            #nom {
-                                // effectuer new_prompt à tout champs non Option. Mettre null aux champs Option.
-                            #( #field_values_new ),*
-                            }
-                        }
-                        fn modify_by_prompt(&mut self, #params) {
-                            let mut last_choice = 0;
-                            loop {
-                            promptable::clear_screen();
-                            let mut options = vec![];
-                            #( #fields_options );*;
-                            let choix = inquire::Select::new(#msg_modify, options.clone()).with_starting_cursor(last_choice).prompt().unwrap();
-                            #( #choix_action)*
-                            }
-
-                        }
-                     }
-
-        struct #vec_name(pub Vec<#nom>);
-            impl std::ops::Deref for #vec_name {
-        type Target = Vec<#nom>; // Our wrapper struct will coerce into Vec<ListeEmplacement>
-        fn deref(&self) -> &Vec<#nom> {
-            &self.0 // We just extract the inner element
+        trait #trait_name {
+                fn new_by_prompt(#params) -> #nom;
+               fn mod_by_prompt(&mut self, #params);
         }
-    }
-
-    impl std::ops::DerefMut for #vec_name {
-        fn deref_mut(&mut self) -> &mut Vec<#nom> {
-            &mut self.0
-        }
-    }
-                trait #trait_name_multiple {
-                    fn ajout(&mut self, #params);
-                    fn delete(&mut self);
-                    fn modify(&mut self, #params);
-                    fn multiple_new_by_prompt(#params) -> Vec<#nom>;
+            impl #trait_name for #nom {
+                fn new_by_prompt(#params) -> #nom {
+                    #nom {
+                    #( #field_values_new ),*
+                    }
                 }
-                    impl #trait_name_multiple for #vec_name {
-                    fn ajout(&mut self, #params) {
-                     self.push(#nom {
-                            #( #fields_multiple_add ),*
-                        });
-                    }
-                    fn delete(&mut self) {
-                        // selection
-                        let choix = inquire::Select::new("Sélection de l'objet à supprimer", self.clone()).raw_prompt().unwrap();
-                        self.remove(choix.index);
-                        // nécéssitera le type de pouvoir se comparer
-                    }
-                    fn modify(&mut self, #params) {
-                        // selection
-                        let choix = inquire::Select::new("Sélection de l'objet à modifier", self.clone()).raw_prompt().unwrap();
-                        // nécéssitera le type de pouvoir se comparer
-                        self.remove(choix.index);
-                        let mut to_modify = choix.value;
-                        to_modify.modify_by_prompt(#lps);
-                        // self.push(to_modify);
+                fn mod_by_prompt(&mut self, #params) {
+                    let mut last_choice = 0;
+                    loop {
+                    promptable::clear_screen();
+                    let mut options = vec![];
+                    #( #fields_options );*;
+                    let choix = inquire::Select::new(#msg_mod, options.clone()).with_starting_cursor(last_choice).prompt().unwrap();
+                    #( #choix_action)*
                     }
 
-                      fn multiple_new_by_prompt(#params) -> Vec<#nom> {
+                }
+             }
 
-                            let mut vec = #vec_name(vec![]);
-                            vec.push(#nom::new_by_prompt(#lps));
-                            // passer dans une loop menu
-                        let choix1 = "ajout".to_string();
-                        let choix2 = "modifier".to_string();
-                        let choix3 = "supprimer".to_string();
-                        let choix4 = "valider".to_string();
-                        let mut options = vec![];
-                        options.push(choix1.clone());
-                        options.push(choix2.clone());
-                        options.push(choix3.clone());
-                        options.push(choix3.clone());
-            loop {
-                            //
-                            // menu ajout/modifier/supprimer
-                            // display les structs en mode tableau
-                            // menu
-                            let choix = inquire::Select::new("choix", options.clone()).prompt().unwrap();
-                            if choix == choix1 {
-                                vec.ajout(#lps)
-                            } else
-                            if choix == choix2 {
-                                vec.modify(#lps)
-                            } else
-                            if choix == choix3 {
-                                vec.delete()
-                            } else
-                            if choix == choix4 {
-                                return vec.0
-                            }
+        trait #trait_name_multiple {
+            fn ajout(&mut self, #params);
+            fn delete(&mut self);
+            fn mod(&mut self, #params);
+            fn multiple_new_by_prompt(#params) -> Vec<#nom>;
+        }
+            impl #trait_name_multiple for Vec<#nom> {
+            fn ajout(&mut self, #params) {
+             self.push(#nom {
+                    #( #fields_multiple_add ),*
+                });
+            }
+            fn delete(&mut self) {
+                let choix = inquire::Select::new("Sélection de l'objet à supprimer", self.clone()).raw_prompt().unwrap();
+                self.remove(choix.index);
+            }
+            fn mod(&mut self, #params) {
+                let choix = inquire::Select::new("Sélection de l'objet à modifier", self.clone()).raw_prompt().unwrap();
+                self.remove(choix.index);
+                let mut to_mod = choix.value;
+                to_mod.mod_by_prompt(#lps);
+            }
 
-                            }
-                        }
-                 }
+              fn multiple_new_by_prompt(#params) -> Vec<#nom> {
 
-                };
+                    let mut vec = vec![];
+                    vec.push(#nom::new_by_prompt(#lps));
+                    // passer dans une loop menu
+                let choix1 = "ajout".to_string();
+                let choix2 = "modifier".to_string();
+                let choix3 = "supprimer".to_string();
+                let choix4 = "valider".to_string();
+                let mut options = vec![];
+                options.push(choix1.clone());
+                options.push(choix2.clone());
+                options.push(choix3.clone());
+                options.push(choix3.clone());
+    loop {
+                    let choix = inquire::Select::new("choix", options.clone()).prompt().unwrap();
+                    if choix == choix1 {
+                        vec.ajout(#lps)
+                    } else
+                    if choix == choix2 {
+                        vec.mod(#lps)
+                    } else
+                    if choix == choix3 {
+                        vec.delete()
+                    } else
+                    if choix == choix4 {
+                        return vec                    }
+
+                    }
+                }
+         }
+
+        };
     generation.into()
 }
 
@@ -357,7 +340,7 @@ fn impl_promptable(ast: &syn::DeriveInput) -> TokenStream {
 //         replace
 //     }
 // }
-
+#[doc(hidden)]
 fn is_option(ty: &Type) -> bool {
     if let syn::Type::Path(ref typath) = ty {
         typath.qself.is_none() && typath.path.segments[0].ident == "Option"
@@ -365,7 +348,7 @@ fn is_option(ty: &Type) -> bool {
         false
     }
 }
-
+#[doc(hidden)]
 fn option_type(ty: &syn::Type) -> Option<&syn::Type> {
     let syn::Type::Path(ty) = ty else { return None };
     if ty.qself.is_some() {

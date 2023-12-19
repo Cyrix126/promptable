@@ -11,5 +11,11 @@ time = {version = "0.3", optional = true}
 termion = {version = "2"}
 promptable_derive = {path = "../promptable_derive", optional = true}
 syn = "2"
+[dev-dependencies]
+promptable = { version = "*", path = "../promptable" }
+
  [features]
 default = ["inquire", "time", "promptable_derive"]
+
+[package.metadata.docs.rs]
+cargo-args = ["-Zunstable-options", "-Zrustdoc-scrape-examples"]

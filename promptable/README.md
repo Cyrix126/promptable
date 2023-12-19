@@ -1,37 +1,33 @@
-# Promptable
+# README
 
-Librairie apportant un trait et des implémentations pour différents type utilisant une librairie de prompt au choix.
+**promptable** is a library bringing the trait [Promptable](Promptable) and implementations for basic types.
 
-La libriarie inquire permet d'avoir des prompts plus intuitifs selon les types. (par exemple date à choisir dans calendrier plutôt qu'écrire la date).
+This library use [inquire-time](https://github.com/Cyrix126/inquire-time), a fork of inquire using the [time](https://docs.rs/time/latest/time) crate instead of chrono for the *date* feature of inquire.
 
-- [] inquire
+The crate inquire allows to get more customizable and intuitive prompts for specific types.
+
+One of the goal of this crate is to be modular to be able to change the prompt backend. Nevertheless, For my own personnal use case I only need inquire as a prompt backend right now.
+
+The big part of this library is to bring also the declarative macro [Promptable](promptable_derive) to make structs prompt-able very quickly but also with a lot of possibilities.
 
 
-## Fonctionnalité
+## Features:
 
-- définit quel genre de prompt utiliser pour chaque type
-- génère un message automatiquement selon le nom du champ du struct ou de la variable.
-- rendre un struct promptable.
-- ne demande pas lors d ela création d'un struct les champs optionnels.
-- méthode pour modifier les structs avec menu interactif.
-- permet des messages personalisé depuis les structs.
-- implémentation personnalisable pour chaque type.
+- implement the trait Promptable for basic types.
+- customizable message prompt
+- manage prompt for Option\<T\>
+- allows to make your own implementation of the Promptable trait
+- bring a declarative macro Promptable for structs, which is why you want to use this library.
 
-## Fonctionnement
 
-le trait Promptable assigné à des Types permet d'avoir un prompt qui créé une valeur ou la modifie.  
-Chaque type peut avoir une implémentation différente, avec des méthodes implémentés par défault grâce à des macros.  
-Les structs ont une implémentation spéciale grâce à une macro dérivative. Chaque champ fait appel à la première méthode pour construire leur valeur (new_by_prompt).
-Pour implémenter la seconde méthode, un menu est généré avec comme choix chaque champ. Une validation retournera le struct.
+## Technical Details:
 
-## Cas spéciaux:
+With the trait Promptable, you have two methods. One for creating a new value and a one to modify self value. Both methods will call a prompt to interact with user. You can pass a customizable message.
 
-Des options à la macro dérivatives sont disponibles pour:  
-- ne pas afficher un champ (une valeur à la place est demandé par exemple par une fonction ou valeur par défaut du type).
-- afficher un champ optionnel. Celà présente à l'utilisateur un champ à partir de la méthode new_by_prompt qui ne serait accessible uniquement dans modify_by_prompt.
-- personnaliser le message du prompt pour un champ.
-- afficher un nom différent qui sera repris pour le menu.
+### Example:
 
-## Implémentation personnelle
-
-Si les paramètres par défault de la macro derive ne sont pas assez précise, alors une impl Promptable for StructName est possible.
+```
+let mut anwser = Bool::new_by_prompt("Do you agree ?");
+anwser.modify_by_prompt("Are you sure ?");
+let age = i32::new_by_prompt("What is your age ?");
+```
