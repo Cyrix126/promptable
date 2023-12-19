@@ -18,10 +18,11 @@ This declarative macro when used on structs, will crate two new traits:
 
 ```rust,ignore
         trait #trait_name_multiple {
+            fn new() -> Vec<#nom>;
             fn ajout(&mut self, #params);
             fn delete(&mut self);
             fn modify(&mut self, #params);
-            fn multiple_new_by_prompt(#params) -> Vec<#nom>;
+            fn multiple_by_prompt(#params) -> Vec<#nom>;
         }
 ```
 
@@ -48,7 +49,7 @@ This method will allow the values of the struct to be selected and modified in a
 ##### for Vec\<T\>
 
 ```rust,ignore
-fn multiple_new_by_prompt(#params) -> Vec<#nom>;
+fn multiple_by_prompt(&mut, #params);
 ```
 
 This method allows to create multiple T with a menu to correct entries.
