@@ -2,7 +2,7 @@
 
 ## Interface
 
-- [x] for the menu, make the selection go back to last selected.
+- [ ] menu multiple_by_prompt, add a preview of the present structs.
 
 ## Fonctionnality
 
@@ -10,6 +10,14 @@
 
 ## For Public Release
 
-- [ ] add metadata for cargo following [api guidelines](https://rust-lang.github.io/api-guidelines/documentation.html#cargotoml-includes-all-common-metadata-c-metadata)
+- [x] add metadata for cargo following [api guidelines](https://rust-lang.github.io/api-guidelines/documentation.html#cargotoml-includes-all-common-metadata-c-metadata)
 - [x] learn how to organize the two crates
-- [ ] write documentation for promptable and promptable_derive
+- [x] write documentation for promptable and promptable_derive
+
+## Modularity
+
+- [ ] add a way to replace inquire, time and termion.
+
+## Internationalization
+
+- [ ] search how to use languages files

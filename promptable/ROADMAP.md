@@ -1,36 +1,25 @@
 # ROADMAP
 
+## Modularity.
+
+Right now, the use of inquire is pretty much forced in this crate. The dev user should be able to use features to add different backend.
+
+For example maybe he wants a much more basic prompt which is not using inquire or, on the contrary, wants to leave the terminal and use a gui prompt or even render a web page.
+
+This should be possible with the use of features. Contributors could add a feature which would enable a new backend for prompt.
 
 
-## Utiliser des fonctions custom pour chaque field
+## Preview for menu multiple_by_prompt
 
+Add a preview of present structs in the menu.
+Those structs should have a method to be called. This method should be made by the user and the result should be display-able.
+Can this method be automaticly made and if yes how to override it ?
 
-Pour éviter que le progammeur ait à réimplémenter pour chaque cas spéciaux et à déclarer des connexions nouvelles à l'intérieur des fonction
+## Internationalization
 
-On oublie les traits pour créer uniquement des implémentations qui peuvent être différente. Celà permet d'avoir des paramètres différent.
-On a alors un attribut qui permet de définir la signature de la méthode.
-Et un attribut par field pour préciser une fonction à utiliser pour créer la valeur. Cette fonction peut alors utiliser le paramètre écrit dans la méthode.
+Some prompts possess default messages which are in english. Their provenance is from the inquire crate or from this crate.
 
-Pour les fields, la fonction utilisé pour générer la valeur peut avoir trois valeurs:
+The translation should be made easy with languages files.
+Because the dev user can use any function for any prompts, nothing block a dev from translating or customize those messages.
 
-- rien de préciser, utiliser la fonction new_by_prompt et modify_by_prompt ou multiple_new_by_prompt pour vec.
-
-- si type est Option, utiliser Some(inner type new_by_prompt).
-
-- default précisé, le type doit implémenter le type Default et la valeur de défaut sera utilisé.
-
-- fonction avec ses paramètres précisé. Le nom d'une fonction avec les noms de variables en paramètres à l'identique des noms utilisé pour les paramètres de la méthode indiqué dans l'attribut params de la structure.
-
-- None pour attribut invisible ou is_option
-
-Le modify_by_prompt contiendra toujours (&mut self).
-
-Si cette technique de création de paramètres aux méthodes est utilisé, on peux quand même utiliser un trait pour les types qui n'utilisent pas cette macro.
-
-L'attribut params est décortiqué pour pouvoir les replacer dans les arguments de fonctions qui ont besoin de les faire passer.
-
-
-## Mutltiple création/modification
-
-Plutôt qu'une méhode pour créer un struct et une autre pour le modifier.
-Une méthode pour créer plusieurs structs et pouvoir chacun les modifier.
+Why not use the crate [rust-i18n](https://lib.rs/crates/rust-i18n)
