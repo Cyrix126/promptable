@@ -3,7 +3,7 @@ use std::fmt::Display;
 use promptable_derive::Promptable;
 use time::Date;
 #[derive(Promptable, Clone)]
-struct Form {
+pub struct Form {
     name: String,
     lastname: String,
     nickname: Option<String>,

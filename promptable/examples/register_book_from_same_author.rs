@@ -4,7 +4,7 @@ use promptable_derive::Promptable;
 use time::Date;
 #[derive(Promptable, Clone)]
 #[prompt(msg_mod = "Select the field to modify")]
-struct Book {
+pub struct Book {
     #[promptable(multiple_once = true)]
     author: String,
     title: String,

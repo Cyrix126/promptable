@@ -6,7 +6,7 @@ use time::Date;
 #[derive(Promptable, Clone)]
 #[prompt(msg_mod = "Select the field to modify the Prestation")]
 #[prompt(params = "msg_search: &str, msg_editor: &str, clients: &[String]")]
-struct Prestation {
+pub struct Prestation {
     #[promptable(visible = false)]
     #[promptable(function_add = "increment(self.last().unwrap().id)")]
     id: u32,
