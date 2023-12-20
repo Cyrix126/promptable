@@ -274,8 +274,12 @@ fn impl_promptable(ast: &syn::DeriveInput) -> TokenStream {
                     promptable::clear_screen();
                     let mut options = vec![];
                     #( #fields_options );*;
-                    let choix = inquire::Select::new(#msg_mod, options.clone()).with_starting_cursor(last_choice).prompt().unwrap();
+                    if let Some(choix) = inquire::Select::new(#msg_mod, options.clone()).with_starting_cursor(last_choice).prompt_skippable().unwrap() {
+                    // if let Some(choix) = option_choix {
                     #( #choix_action)*
+                    } else {
+                        continue
+                    }
                     }
 
                 }
@@ -299,12 +303,21 @@ fn impl_promptable(ast: &syn::DeriveInput) -> TokenStream {
             }
             fn delete(&mut self) {
                     promptable::clear_screen();
-                let choix = inquire::Select::new("Sélection de l'objet à supprimer", self.clone()).raw_prompt().unwrap();
+                let choix = match inquire::Select::new("Sélection de l'objet à modifier", self.clone()).raw_prompt() {
+                    Ok(l) => l,
+                    Err(inquire::InquireError::OperationCanceled) => return,
+                    _ => panic!(),
+                };
                 self.remove(choix.index);
             }
             fn modify(&mut self, #params) {
                     promptable::clear_screen();
-                let choix = inquire::Select::new("Sélection de l'objet à modifier", self.clone()).raw_prompt().unwrap();
+                let choix = match inquire::Select::new("Sélection de l'objet à modifier", self.clone()).raw_prompt() {
+                    Ok(l) => l,
+                    Err(inquire::InquireError::OperationCanceled) => return,
+                    _ => panic!(),
+                };
+
                 self.remove(choix.index);
                 let mut to_mod = choix.value;
                 to_mod.modify_by_prompt(#lps);
