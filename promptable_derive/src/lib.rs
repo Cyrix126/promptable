@@ -257,7 +257,7 @@ fn impl_promptable(ast: &syn::DeriveInput) -> TokenStream {
     let trait_name_multiple: proc_macro2::TokenStream =
         format!("PromptableVec{}", nom).parse().unwrap();
     let generation = quote! {
-        trait #trait_name {
+        pub trait #trait_name {
                 fn new_by_prompt(#params) -> #nom;
                fn modify_by_prompt(&mut self, #params);
         }
@@ -281,7 +281,7 @@ fn impl_promptable(ast: &syn::DeriveInput) -> TokenStream {
                 }
              }
 
-        trait #trait_name_multiple {
+       pub trait #trait_name_multiple {
             fn new() -> Vec<#nom> {
                 Vec::new()
             }
