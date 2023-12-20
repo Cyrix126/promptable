@@ -7,6 +7,10 @@
 ## Fonctionnality
 
 - [x] for new_by_prompt() method, add possiblity to ask for an Option<T> but without forcing an anwser.
+- [x] attributs to give a function to new_by_prompt and modify_by_prompt in the same time.
+- [ ] add a way to complete the value of multiples fields with only one function.
+
+This function will need to have a signature identical to the fields in order.
 
 ## For Public Release
 

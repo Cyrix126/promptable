@@ -14,6 +14,7 @@ struct FieldOpts {
     name: Option<String>,
     visible: Option<bool>,
     msg: Option<String>,
+    function: Option<String>,
     function_new: Option<String>,
     function_mod: Option<String>,
     function_add: Option<String>, // self.ident peut-être utilisé
@@ -84,9 +85,10 @@ fn impl_promptable(ast: &syn::DeriveInput) -> TokenStream {
         let visible = if let Some(v) = opts.visible { v } else { true };
         // tous les types de champs doivent implémenter Promptable ou au moins Default (il ne doit pas alors être demandé) si l'attribut fonction n'est pas renseigné.
 
-        let value = if opts.function_new.is_some() && attrs_struct.params.is_some() {
-            // utiliser la fonction
-            opts.function_new.unwrap().parse().unwrap()
+        let value = if let Some(f) = opts.function_new {
+            f.parse().unwrap()
+        } else if let Some(ref f) = opts.function {
+            f.parse().unwrap()
         } else if opts.default.is_some_and(|c| c) {
             if is_option(ty) {
                 quote! {None}
@@ -154,6 +156,14 @@ fn impl_promptable(ast: &syn::DeriveInput) -> TokenStream {
             // let nb_choice = nb.checked_sub(1).expect(&format!("{nb}"));
             let nb_choice = nb;
             if let Some(fm) = &opts.function_mod {
+                let function_mod: proc_macro2::TokenStream = fm.parse().unwrap();
+                choix_action.push(quote! {
+                    if choix == options[#nb_choice] {
+                        last_choice = #nb_choice;
+                        self.#ident = #function_mod
+                    }
+                });
+            } else if let Some(fm) = &opts.function {
                 let function_mod: proc_macro2::TokenStream = fm.parse().unwrap();
                 choix_action.push(quote! {
                     if choix == options[#nb_choice] {
