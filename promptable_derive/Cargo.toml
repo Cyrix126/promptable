@@ -7,11 +7,9 @@ publish = false # TODO
 repository = "https://github.com/Cyrix126/promptable"                                  
 license = "GPL-3.0-only"
 readme = "README.md"                       
-documentation = "https://docs.rs/inquire"
-homepage = "https://github.com/Cyrix126/promptable"
 authors = ["Louis-Marie Baer <lm@baermail.fr>"]
 keywords = ["cli", "ask", "prompt", "question", "interactive", "derive"]
-categories = ["command-line-interface", "value-formatting", "derive"]
+categories = ["command-line-interface", "value-formatting"]
 include = ["./src"]                       
 
 [lib]
@@ -22,3 +20,4 @@ syn = "2"
 quote = "1"
 darling = "0.20"
 proc-macro2 = "1"
+

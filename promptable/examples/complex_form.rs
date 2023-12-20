@@ -12,12 +12,14 @@ struct Prestation {
     id: u32,
     #[promptable(multiple_once = true)]
     #[promptable(function_new = "search_client(msg_search, clients)")]
+    #[promptable(function_mod = "search_client(msg_search, clients)")]
     client: String,
     date: Date,
     hours: f32,
     price: f32,
     payed: bool,
     #[promptable(function_new = "editor(msg_editor)")]
+    #[promptable(function_mod = "editor(msg_editor)")]
     description: String,
 }
 

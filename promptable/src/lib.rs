@@ -1,10 +1,11 @@
 #![warn(missing_docs)]
 #![doc = include_str!("../README.md")]
 
-use inquire::{Confirm, CustomType, DateSelect, Text};
+use inquire::{required, Confirm, CustomType, DateSelect, Text};
 pub extern crate promptable_derive;
 use termion::{clear::All, cursor::Goto};
 use time::{Date, OffsetDateTime};
+
 #[doc(hidden)]
 /// function using termion to clear the screen.
 /// Used often in the method of declarative macro.
@@ -37,8 +38,7 @@ macro_rules! impl_promptable {
             /// ask to create a new value, msg can transmit the message of the prompt.
             fn new_by_prompt(msg: &str) -> Self {
                 clear_screen();
-                let resp = CustomType::<$t>::new(msg).prompt().unwrap();
-                return resp;
+                CustomType::<$t>::new(msg).prompt().unwrap()
             }
             /// ask to modify the value, msg can transmit the message of the prompt.
             fn modify_by_prompt(&mut self, msg: &str) {
@@ -54,22 +54,19 @@ macro_rules! impl_promptable {
             /// ask to optionnaly create a value, msg can transmit the message of the prompt.
             fn new_by_prompt(msg: &str) -> Self {
                 clear_screen();
-                let resp = CustomType::<$t>::new(msg).prompt_skippable().unwrap();
-                return resp;
+                CustomType::<$t>::new(msg).prompt_skippable().unwrap()
             }
             /// ask to modify a value, can return None, msg can transmit the message of the prompt.
             fn modify_by_prompt(&mut self, msg: &str) {
                 clear_screen();
                 if let Some(s) = self {
-                    let resp = CustomType::<$t>::new(msg)
+                    *self = CustomType::<$t>::new(msg)
                         .with_default(s.clone())
                         .with_placeholder(&s.to_string())
                         .prompt_skippable()
                         .unwrap();
-                    *self = resp;
                 } else {
-                    let resp = CustomType::<$t>::new(msg).prompt_skippable().unwrap();
-                    *self = resp;
+                    *self = CustomType::<$t>::new(msg).prompt_skippable().unwrap();
                 }
             }
         }
@@ -102,20 +99,25 @@ macro_rules! impl_promptable {
 impl Promptable for String {
     fn new_by_prompt(msg: &str) -> Self {
         clear_screen();
-        let resp = Text::new(msg).prompt().unwrap();
-        resp
+        Text::new(msg)
+            .with_validator(required!("This field is required"))
+            .prompt()
+            .unwrap()
     }
     fn modify_by_prompt(&mut self, msg: &str) {
         clear_screen();
-        *self = Text::new(msg).with_initial_value(self).prompt().unwrap();
+        *self = Text::new(msg)
+            .with_validator(required!("This field is required"))
+            .with_initial_value(self)
+            .prompt()
+            .unwrap();
     }
 }
 /// String can be used with the Text type of inquire
 impl Promptable for Option<String> {
     fn new_by_prompt(msg: &str) -> Self {
         clear_screen();
-        let resp = Text::new(msg).prompt_skippable().unwrap();
-        resp
+        Text::new(msg).prompt_skippable().unwrap()
     }
     fn modify_by_prompt(&mut self, msg: &str) {
         clear_screen();
@@ -125,8 +127,7 @@ impl Promptable for Option<String> {
                 .prompt_skippable()
                 .unwrap();
         } else {
-            let resp = Text::new(msg).prompt_skippable().unwrap();
-            *self = resp;
+            *self = Text::new(msg).prompt_skippable().unwrap();
         }
     }
 }
@@ -134,8 +135,7 @@ impl Promptable for Option<String> {
 impl Promptable for bool {
     ///
     fn new_by_prompt(msg: &str) -> Self {
-        let resp = Confirm::new(msg).prompt().unwrap();
-        resp
+        Confirm::new(msg).prompt().unwrap()
     }
     ///
     fn modify_by_prompt(&mut self, msg: &str) {
@@ -146,12 +146,11 @@ impl Promptable for bool {
 impl Promptable for Date {
     fn new_by_prompt(msg: &str) -> Self {
         clear_screen();
-        let date = DateSelect::new(msg)
+        DateSelect::new(msg)
             .with_starting_date(OffsetDateTime::now_utc().date())
             .with_week_start(time::Weekday::Monday)
             .prompt()
-            .unwrap();
-        date
+            .unwrap()
     }
     fn modify_by_prompt(&mut self, msg: &str) {
         clear_screen();
@@ -167,12 +166,11 @@ impl Promptable for Date {
 impl Promptable for Option<Date> {
     fn new_by_prompt(msg: &str) -> Self {
         clear_screen();
-        let date = DateSelect::new(msg)
+        DateSelect::new(msg)
             .with_starting_date(OffsetDateTime::now_utc().date())
             .with_week_start(time::Weekday::Monday)
             .prompt_skippable()
-            .unwrap();
-        date
+            .unwrap()
     }
     fn modify_by_prompt(&mut self, msg: &str) {
         clear_screen();

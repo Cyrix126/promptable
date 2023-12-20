@@ -7,24 +7,18 @@ publish = false # TODO
 repository = "https://github.com/Cyrix126/promptable"
 license = "GPL-3.0-only"
 readme = "README.md"
-documentation = "https://docs.rs/inquire"
-homepage = "https://github.com/Cyrix126/promptable"
 authors = ["Louis-Marie Baer <lm@baermail.fr>"]
 keywords = ["cli", "ask", "prompt", "question", "interactive", "derive"]
 categories = ["command-line-interface", "value-formatting", "derive"]
-include = ["./src"]
 
 [dependencies]
-inquire = { git = "https://github.com/Cyrix126/inquire-time", optional = true}
+inquire = { git = "https://github.com/Cyrix126/inquire-time", features=["macros"], optional = true}
 time = {version = "0.3", optional = true}
-termion = {version = "2"}
+termion = {version = "2", optional=true}
 promptable_derive = {path = "../promptable_derive", optional = true}
-syn = "2"
-[dev-dependencies]
-promptable = { version = "*", path = "../promptable" }
 
  [features]
-default = ["inquire/editor", "time", "promptable_derive"]
+default = ["inquire/editor", "time", "promptable_derive", "termion"]
 
 [package.metadata.docs.rs]
 cargo-args = ["-Zunstable-options", "-Zrustdoc-scrape-examples"]
