@@ -11,21 +11,20 @@ pub struct Prestation {
     #[promptable(function_add = "increment(self.last().unwrap().id)")]
     id: u32,
     #[promptable(multiple_once = true)]
-    #[promptable(function_new = "search_client(msg_search, clients)")]
-    #[promptable(function_mod = "search_client(msg_search, clients)")]
+    #[promptable(function = "search_client(msg_search, clients)")]
     client: String,
     date: Date,
     hours: f32,
+    #[promptable(function_render = "add_euros(field_value)")]
     price: f32,
     payed: bool,
-    #[promptable(function_new = "editor(msg_editor)")]
-    #[promptable(function_mod = "editor(msg_editor)")]
+    #[promptable(function = "editor(msg_editor)")]
     description: String,
 }
 
 impl Display for Prestation {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.id)
+        write!(f, "{}\n{}\n{}", self.id, self.client, self.date)
     }
 }
 
@@ -40,6 +39,10 @@ fn search_client(msg_search: &str, clients: &[String]) -> String {
 
 fn editor(msg_editor: &str) -> String {
     Editor::new(msg_editor).prompt().unwrap()
+}
+
+fn add_euros(price: &f32) -> String {
+    format!("{price}€")
 }
 
 fn main() {

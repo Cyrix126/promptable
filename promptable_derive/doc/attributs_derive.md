@@ -49,6 +49,17 @@ Calls the function described as String instead of promptable::Promptable::modify
 
 Calls the function described as String instead of promptable::Promptable::new_by_prompt() for this field while adding an instance of this struct on a Vec. This function can use self to use the vec. Refer to the example "complex_form" to see it in action.
 
+- ##### `#[promptable(function = String)]`
+
+Will put the same function as for function_new and function_mod.
+
+- ##### `#[promptable(function_render = String)]`
+
+This function will be executed to render the value of the field when the user is asked to select fields. (modify_by_prompt).
+field_value mut be used as a parameter. Do not add it in the "prompt" attribut because the value is already inside the macro in a variable called field_value.
+This function must return a type which implement the trait Display or you will get an error from the expanded macro.
+
+You can see an example in "complex_form".
 
 - ##### `#[promptable(multiple_once = String)]`
 

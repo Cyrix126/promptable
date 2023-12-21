@@ -4,7 +4,7 @@
 
 - [ ] menu multiple_by_prompt, add a preview of the present structs.
 - [x] Cancel from mod menu and multiple menu should return to the menu instead of unwrap.
-
+- [x] add an attribut to prepare the value shown with a function.
 ## Stability
 
 - [x] cancel should in any case crash.It should be ignored or return None.

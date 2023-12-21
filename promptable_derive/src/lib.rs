@@ -13,6 +13,7 @@ struct FieldOpts {
     default: Option<bool>,
     name: Option<String>,
     visible: Option<bool>,
+    function_render: Option<String>, // field_value mut be in parameter
     msg: Option<String>,
     function: Option<String>,
     function_new: Option<String>,
@@ -139,7 +140,15 @@ fn impl_promptable(ast: &syn::DeriveInput) -> TokenStream {
 
         if visible {
             // modify_by_prompt
-            let prepare_value = if is_option(ty) {
+            let prepare_value = if let Some(f) = opts.function_render {
+             let function: proc_macro2::TokenStream = f.parse().unwrap();
+                quote! {
+                    let field_value = &self.#ident;
+                    let value = #function;
+                }   
+            } else {
+                
+             if is_option(ty) {
                 quote! {
                 let value =
                 if let Some(v) = &self.#ident {
@@ -152,12 +161,15 @@ fn impl_promptable(ast: &syn::DeriveInput) -> TokenStream {
                 quote! {
                     let value = &self.#ident;
                 }
+            }
             };
             // préparer les choix
+                
             fields_options.push(quote! {
                 #prepare_value
                 options.push(format!("{}: {}", #name, value ))
             });
+            
             // utiliser le choix
             // let nb_choice = nb.checked_sub(1).expect(&format!("{nb}"));
             let nb_choice = nb;
