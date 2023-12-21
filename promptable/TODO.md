@@ -3,7 +3,12 @@
 ## Interface
 
 - [ ] menu multiple_by_prompt, add a preview of the present structs.
-- [ ] Cancel from mod menu and multiple menu should return to the menu instead of unwrap.
+- [x] Cancel from mod menu and multiple menu should return to the menu instead of unwrap.
+
+## Stability
+
+- [x] cancel should in any case crash.It should be ignored or return None.
+
 ## Fonctionnality
 
 - [x] for new_by_prompt() method, add possiblity to ask for an Option<T> but without forcing an anwser.

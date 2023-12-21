@@ -99,12 +99,18 @@ fn impl_promptable(ast: &syn::DeriveInput) -> TokenStream {
             }
         } else if visible && !is_option(ty) {
             quote! {
-                <#ty as promptable::Promptable>::new_by_prompt(#msg)
+                match <#ty as promptable::Promptable>::new_by_prompt(#msg) {
+                    Ok(v) => v,
+                    Err(()) => continue
+                }
             }
         } else if visible && is_option(ty) {
             let inner = option_type(ty).unwrap();
             quote! {
-            Some(<#inner as promptable::Promptable>::new_by_prompt(#msg))
+            match <#inner as promptable::Promptable>::new_by_prompt(#msg) {
+                    Ok(v) => Some(v),
+                    Err(()) => continue
+                }
             }
         } else if !visible && is_option(ty) {
             quote! {
@@ -175,7 +181,10 @@ fn impl_promptable(ast: &syn::DeriveInput) -> TokenStream {
                 choix_action.push(quote! {
                     if choix == options[#nb_choice] {
                         last_choice = #nb_choice;
-                        <#ty as promptable::Promptable>::modify_by_prompt(&mut self.#ident, #msg)
+                        match <#ty as promptable::Promptable>::modify_by_prompt(&mut self.#ident, #msg) {
+                            Ok(()) => (),
+                            Err(()) => continue, 
+                        }
 
                     }
                 });
@@ -264,9 +273,11 @@ fn impl_promptable(ast: &syn::DeriveInput) -> TokenStream {
             impl #trait_name for #nom {
                 fn new_by_prompt(#params) -> #nom {
                     promptable::clear_screen();
-                    #nom {
+                loop {
+                 return #nom {
                     #( #field_values_new ),*
                     }
+                }
                 }
                 fn modify_by_prompt(&mut self, #params) {
                     let mut last_choice = 0;
@@ -296,10 +307,13 @@ fn impl_promptable(ast: &syn::DeriveInput) -> TokenStream {
         }
             impl #trait_name_multiple for Vec<#nom> {
             fn add(&mut self, #params) {
+                loop {
                     promptable::clear_screen();
              self.push(#nom {
                     #( #fields_multiple_add ),*
                 });
+                    break
+                }
             }
             fn delete(&mut self) {
                     promptable::clear_screen();
@@ -325,7 +339,7 @@ fn impl_promptable(ast: &syn::DeriveInput) -> TokenStream {
             }
 
              fn multiple_by_prompt(&mut self, #params) {
-                    promptable::clear_screen();
+
                     // passer dans une loop menu
                 let choix1 = "ajout".to_string();
                 let choix2 = "modifier".to_string();
@@ -341,7 +355,10 @@ fn impl_promptable(ast: &syn::DeriveInput) -> TokenStream {
                     self.push(#nom::new_by_prompt(#lps));
                 }
                     promptable::clear_screen();
-                    let choix = inquire::Select::new(#msg_mod, options.clone()).prompt().unwrap();
+                    let choix = match inquire::Select::new(#msg_mod, options.clone()).prompt_skippable().expect("error from inquire") {
+                        Some(c) => c,
+                        None => continue
+                    };
                     if choix == choix1 {
                         self.add(#lps)
                     } else

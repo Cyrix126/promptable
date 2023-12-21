@@ -17,6 +17,7 @@ The big part of this library is to bring also the declarative macro [Promptable]
 - customizable message prompt
 - manage prompt for Option\<T\>
 - allows to make your own implementation of the Promptable trait
+- let you handle cancel from user.
 - bring a declarative macro Promptable for structs, which is why you want to use this library.
 
 

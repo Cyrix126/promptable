@@ -4,6 +4,11 @@ the crate promptable_derive bring the declarative macro.
 
 ## Features:
 
+- method to create and modify a promptable struct with menu.
+- method to create and modify a vec of struct with menu..
+- lot of optional attributs to customize prompts.
+- transfer parameters to called functions.
+- manage cancellation from user.
 
 ### Traits
 
