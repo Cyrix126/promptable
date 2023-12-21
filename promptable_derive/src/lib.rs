@@ -317,12 +317,18 @@ fn impl_promptable(ast: &syn::DeriveInput) -> TokenStream {
             }
             fn delete(&mut self) {
                     promptable::clear_screen();
-                let choix = match inquire::Select::new("Sélection de l'objet à modifier", self.clone()).raw_prompt() {
-                    Ok(l) => l,
-                    Err(inquire::InquireError::OperationCanceled) => return,
-                    _ => panic!(),
+                let choix = match inquire::MultiSelect::new("Sélection de l'objet à modifier", self.clone()).raw_prompt_skippable().expect("error from inquire") {
+                    Some(l) => l,
+                    None => return,
                 };
-                self.remove(choix.index);
+                let mut indexes = Vec::new();
+                for c in choix {
+                    indexes.push(c.index);
+                }
+                indexes.sort_unstable_by(|a, b| b.cmp(a));
+                for index in indexes {
+                self.remove(index);
+                }
             }
             fn modify(&mut self, #params) {
                     promptable::clear_screen();
