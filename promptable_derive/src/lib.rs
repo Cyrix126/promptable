@@ -300,13 +300,13 @@ fn impl_promptable(ast: &syn::DeriveInput) -> TokenStream {
             fn new() -> Vec<#nom> {
                 Vec::new()
             }
-            fn add(&mut self, #params);
-            fn delete(&mut self);
+            fn add_by_prompt(&mut self, #params);
+            fn delete_by_prompt(&mut self);
             fn modify(&mut self, #params);
             fn multiple_by_prompt(&mut self, #params);
         }
             impl #trait_name_multiple for Vec<#nom> {
-            fn add(&mut self, #params) {
+             fn add_by_prompt(&mut self, #params) {
                 loop {
                     promptable::clear_screen();
              self.push(#nom {
@@ -315,7 +315,7 @@ fn impl_promptable(ast: &syn::DeriveInput) -> TokenStream {
                     break
                 }
             }
-            fn delete(&mut self) {
+             fn delete_by_prompt(&mut self) {
                     promptable::clear_screen();
                 let choix = match inquire::MultiSelect::new("Sélection de l'objet à modifier", self.clone()).raw_prompt_skippable().expect("error from inquire") {
                     Some(l) => l,
@@ -366,13 +366,13 @@ fn impl_promptable(ast: &syn::DeriveInput) -> TokenStream {
                         None => continue
                     };
                     if choix == choix1 {
-                        self.add(#lps)
+                        self.add_by_prompt(#lps)
                     } else
                     if choix == choix2 {
                         self.modify(#lps)
                     } else
                     if choix == choix3 {
-                        self.delete()
+                        self.delete_by_prompt()
                     } else
                     if choix == choix4 {
                         break                    }
