@@ -2,6 +2,7 @@
 #![doc = include_str!("../README.md")]
 
 use inquire::{required, Confirm, CustomType, DateSelect, Text};
+pub extern crate inquire;
 pub extern crate promptable_derive;
 use termion::{clear::All, cursor::Goto};
 use time::{Date, OffsetDateTime};
