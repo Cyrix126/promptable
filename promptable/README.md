@@ -29,7 +29,7 @@ With the trait Promptable, you have two methods. One for creating a new value an
 
 ```rust,no_run
 use promptable::Promptable;
-let mut anwser = bool::new_by_prompt("Do you agree ?");
+let mut anwser = bool::new_by_prompt("Do you agree ?").unwrap();
 anwser.modify_by_prompt("Are you sure ?");
 let age = i32::new_by_prompt("What is your age ?");
 ```

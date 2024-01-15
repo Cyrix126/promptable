@@ -20,7 +20,7 @@ pub fn clear_screen() {
 ///
 ///use time::Date;
 ///use promptable::Promptable;
-///let mut anwser = Date::new_by_prompt("choose the date");
+///let mut anwser = Date::new_by_prompt("choose the date").unwrap();
 ///anwser.modify_by_prompt("change the date");
 ///```
 
