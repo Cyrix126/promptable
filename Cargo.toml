@@ -1,0 +1,6 @@
+[workspace]
+resolver = "2"
+members = [
+  "promptable",
+  "promptable_derive",
+]
