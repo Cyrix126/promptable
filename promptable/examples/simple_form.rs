@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
+use promptable::Date;
 use promptable_derive::Promptable;
-use time::Date;
 #[derive(Promptable, Clone)]
 pub struct Form {
     name: String,
@@ -17,11 +17,11 @@ impl Display for Form {
     }
 }
 fn main() {
-    let mut form = Form::new_by_prompt();
-    form.modify_by_prompt();
+    let mut form = Form::new_by_prompt().unwrap();
+    form.modify_by_prompt().unwrap();
     let mut forms = Vec::new();
     forms.push(form);
     // or to make an empty vec
     // let mut forms = <Vec<Form> as PromptableVecForm>::new();
-    forms.multiple_by_prompt();
+    forms.multiple_by_prompt().unwrap();
 }

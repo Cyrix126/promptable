@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
+use promptable::Date;
 use promptable_derive::Promptable;
-use time::Date;
 #[derive(Promptable, Clone)]
 #[prompt(msg_mod = "Select the field to modify")]
 pub struct Book {
@@ -23,5 +23,5 @@ impl Display for Book {
 }
 fn main() {
     let mut forms = <Vec<Book> as PromptableVecBook>::new();
-    forms.multiple_by_prompt();
+    forms.multiple_by_prompt().unwrap();
 }

@@ -1,8 +1,8 @@
 use std::fmt::Display;
 
 use inquire::{Editor, Select};
+use promptable::Date;
 use promptable_derive::Promptable;
-use time::Date;
 #[derive(Promptable, Clone)]
 #[prompt(msg_mod = "Select the field to modify the Prestation")]
 #[prompt(params = "msg_search: &str, msg_editor: &str, clients: &[String]")]
@@ -48,5 +48,7 @@ fn add_euros(price: &f32) -> String {
 fn main() {
     let clients = vec!["ClientA".to_string(), "ClientB".to_string()];
     let mut prestations = <Vec<Prestation> as PromptableVecPrestation>::new();
-    prestations.multiple_by_prompt("New prestation", "Description: ", &clients);
+    prestations
+        .multiple_by_prompt("New prestation", "Description: ", &clients)
+        .unwrap();
 }

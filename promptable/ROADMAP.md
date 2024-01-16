@@ -23,3 +23,9 @@ The translation should be made easy with languages files.
 Because the dev user can use any function for any prompts, nothing block a dev from translating or customize those messages.
 
 Why not use the crate [rust-i18n](https://lib.rs/crates/rust-i18n)
+
+## New Struct should be more user friendly.
+
+If a struct call a method new_by_prompt, the user must anwser every questions without the possiblity of going back or cancelling. The user should be able to do that and it is to the dev user to manage the return type or a way should be available to him to change the way the new struct manage the anwser.
+
+## Use of Dynamic Function instead of reading function from string ?
