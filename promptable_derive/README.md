@@ -5,7 +5,7 @@ the crate promptable_derive bring the declarative macro.
 ## Features:
 
 - implement the trait Promptable\<P\> on your struct, where P is a tuple of your parameter you want to use for your functions.
-- create a wrapper around VecYourStruct named VecStructName and implement the trait Promptable.
+- create a wrapper around Vec\<YourStruct\> named VecStructName and implement the trait Promptable.
 - lot of optional attributs to customize prompts (message to display, skip fields, use your own functions with any parameters).
 - cool interface with inquire
 - menus for managing vec from a user perspective.
@@ -34,12 +34,12 @@ if let Some(struct) = StructExample::new_by_prompt(())? {};
 ```
 You can then modify it
 ```rust,ignore
-struct.modify_by_prompt?;
+struct.modify_by_prompt(())?;
 ```
 A new type will be created wrapping a Vec\<StructExample\>.
 ```rust,ignore
 let multiples = VecStructExample(Vec::new());
-multiples.modify_by_prompt()?
+multiples.modify_by_prompt(())?
 ```
 
 See the documentation locally, later online.

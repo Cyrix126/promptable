@@ -35,7 +35,7 @@ let age = i32::new_by_prompt("What is your age ?");
 }
 let mut ages: Vec<u32> = Vec::new();
 ages.modify_by_prompt("Manage multiples ages")?;
-Ok::<(), anyhow::Error>(())
+# Ok::<(), anyhow::Error>(())
 ```
 
 You can see more examples in the /examples folder.  
