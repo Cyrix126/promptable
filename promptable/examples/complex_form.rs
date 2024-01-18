@@ -1,14 +1,15 @@
 use std::fmt::Display;
 
+use anyhow::Result;
 use inquire::{Editor, Select};
-use promptable::Date;
+use promptable::{Date, Promptable};
 use promptable_derive::Promptable;
 #[derive(Promptable, Clone)]
 #[prompt(msg_mod = "Select the field to modify the Prestation")]
 #[prompt(params = "msg_search: &str, msg_editor: &str, clients: &[String]")]
 pub struct Prestation {
     #[promptable(visible = false)]
-    #[promptable(function_add = "increment(self.last().unwrap().id)")]
+    #[promptable(function_add = "increment(&self.last().unwrap())")]
     id: u32,
     #[promptable(multiple_once = true)]
     #[promptable(function = "search_client(msg_search, clients)")]
@@ -28,8 +29,8 @@ impl Display for Prestation {
     }
 }
 
-fn increment(a: u32) -> u32 {
-    a + 1
+fn increment(p: &Prestation) -> u32 {
+    p.id + 1
 }
 fn search_client(msg_search: &str, clients: &[String]) -> String {
     Select::new(msg_search, clients.to_owned())
@@ -45,10 +46,10 @@ fn add_euros(price: &f32) -> String {
     format!("{price}€")
 }
 
-fn main() {
+fn main() -> Result<()> {
     let clients = vec!["ClientA".to_string(), "ClientB".to_string()];
-    let mut prestations = <Vec<Prestation> as PromptableVecPrestation>::new();
-    prestations
-        .multiple_by_prompt("New prestation", "Description: ", &clients)
-        .unwrap();
+    Prestation::new_by_prompt(("New prestation", "Description", &clients))?;
+    let mut prestations = VecPrestation(Vec::new());
+    prestations.modify_by_prompt(("New prestation", "Description", &clients))?;
+    Ok(())
 }

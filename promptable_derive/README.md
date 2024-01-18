@@ -4,57 +4,46 @@ the crate promptable_derive bring the declarative macro.
 
 ## Features:
 
-- method to create and modify a promptable struct with menu.
-- method to create and modify a vec of struct with menu..
-- lot of optional attributs to customize prompts.
-- transfer parameters to called functions.
+- implement the trait Promptable\<P\> on your struct, where P is a tuple of your parameter you want to use for your functions.
+- create a wrapper around VecYourStruct named VecStructName and implement the trait Promptable.
+- lot of optional attributs to customize prompts (message to display, skip fields, use your own functions with any parameters).
+- cool interface with inquire
+- menus for managing vec from a user perspective.
 - manage cancellation from user.
+- *panic free*
 
-### Traits
+## Examples
 
-This declarative macro when used on structs, will crate two new traits:
+See the folder [example](../promptable/examples)
 
-```rust,ignore
-        trait #trait_name {
-               fn new_by_prompt(#params) -> #nom;
-               fn modify_by_prompt(&mut self, #params);
-        }
-```
+## How to Use
+
+Apply traits Promptable and Clone on your struct.
 
 ```rust,ignore
-        trait #trait_name_multiple {
-            fn new() -> Vec<#nom>;
-            fn ajout(&mut self, #params);
-            fn delete(&mut self);
-            fn modify(&mut self, #params);
-            fn multiple_by_prompt(#params) -> Vec<#nom>;
-        }
+#[derive(Promptable, Clone)]
+struct StructExample {
+        name: String,
+        email: String
+}
+
 ```
-
-It will implement them on the struct of type T and Vec\<T\>, depending of the types and attributes of each fields.
-
-#### Methods
-
-
-##### for T
-
+And then you can call a method to create one
 ```rust,ignore
-fn new_by_prompt(#params) -> #nom;
+if let Some(struct) = StructExample::new_by_prompt(())? {};
 ```
-
-This method will construct the struct, prompting each fields by default with their implementation of the [Promptable](../promptable::Promptable) trait.  
-This behavior can be overriden by attributs.
-
+You can then modify it
 ```rust,ignore
-fn modify_by_prompt(&mut self, #params); 
+struct.modify_by_prompt?;
 ```
-
-This method will allow the values of the struct to be selected and modified in a menu.
-
-##### for Vec\<T\>
-
+A new type will be created wrapping a Vec\<StructExample\>.
 ```rust,ignore
-fn multiple_by_prompt(&mut, #params);
+let multiples = VecStructExample(Vec::new());
+multiples.modify_by_prompt()?
 ```
 
-This method allows to create multiple T with a menu to correct entries.
+See the documentation locally, later online.
+ 
+```bash, ignore
+cargo doc --open
+```

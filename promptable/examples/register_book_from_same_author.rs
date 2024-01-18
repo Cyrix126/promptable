@@ -1,6 +1,7 @@
 use std::fmt::Display;
 
-use promptable::Date;
+use anyhow::Result;
+use promptable::{Date, Promptable};
 use promptable_derive::Promptable;
 #[derive(Promptable, Clone)]
 #[prompt(msg_mod = "Select the field to modify")]
@@ -21,7 +22,8 @@ impl Display for Book {
         write!(f, "{}", self.title)
     }
 }
-fn main() {
-    let mut forms = <Vec<Book> as PromptableVecBook>::new();
-    forms.multiple_by_prompt().unwrap();
+fn main() -> Result<()> {
+    let mut forms = VecBook(Vec::new());
+    forms.modify_by_prompt(())?;
+    Ok(())
 }

@@ -3,13 +3,28 @@
 
 use core::panic;
 use darling::FromAttributes;
-use proc_macro::TokenStream;
+use display::{
+    field_display_human_get, field_display_short_get, impl_prompt_display_generate, option2bool,
+};
+use impl_struct::{
+    add_last_actions_menu_modify, generate_value_from_field_new, impl_promptable_struct,
+    prepare_value_from_field_modify,
+};
+use impl_struct_vec::{generate_line_add_by_prompt, impl_promptable_vec_struct};
+use params::{get_from_params, prepare_value_as_function_param};
+use proc_macro2::{Ident, TokenStream};
 use quote::quote;
-use syn::{self, Data, Type};
+use syn::{self, Attribute, Data, Type};
+
+mod display;
+mod impl_struct;
+mod impl_struct_vec;
+mod params;
 
 #[derive(FromAttributes)]
 #[darling(attributes(promptable))]
 struct FieldOpts {
+    short_display: Option<bool>,
     default: Option<bool>,
     name: Option<String>,
     visible: Option<bool>,
@@ -21,412 +36,214 @@ struct FieldOpts {
     function_add: Option<String>, // self.ident peut-être utilisé
     multiple_once: Option<bool>,
 }
+
+struct FieldParams<'a> {
+    nb: usize,
+    msg: String,
+    name: String,
+    ident: &'a Ident,
+    visible: bool,
+    ty: &'a Type,
+    function: &'a Option<String>,
+    function_new: &'a Option<String>,
+    function_mod: &'a Option<String>,
+    function_add: &'a Option<String>,
+    multiple_once: bool,
+    function_render: &'a Option<String>, // field_value mut be in parameter
+    short_display: bool,
+    default: bool,
+}
 #[derive(FromAttributes, Debug)]
 #[darling(attributes(prompt))]
 struct StructOpts {
     params: Option<String>,
     msg_mod: Option<String>,
+    custom_prompt_display: Option<bool>,
+    name: Option<String>,
+}
+
+struct GlobalParams {
+    msg_mod: String,
+    custom_prompt_display: bool,
+    name: TokenStream,
+    params_as_named_value: Vec<TokenStream>,
+    tuple: TokenStream,
+}
+
+fn opts2global(ast: &syn::DeriveInput) -> GlobalParams {
+    let attrs_struct = StructOpts::from_attributes(&ast.attrs).expect("Wrong attributes on struct");
+    let custom_prompt_display = option2bool(attrs_struct.custom_prompt_display);
+    let name = attrs_struct
+        .name
+        .unwrap_or_else(|| ast.ident.to_string())
+        .parse()
+        .unwrap();
+    let msg_mod = attrs_struct
+        .msg_mod
+        .unwrap_or(String::from("Select the field to modify"));
+    let params = &attrs_struct.params.unwrap_or_default();
+    let tuple: TokenStream = get_from_params(params, false).parse().unwrap();
+    let params_as_named_value = prepare_value_as_function_param(params);
+    GlobalParams {
+        msg_mod,
+        custom_prompt_display,
+        name,
+        params_as_named_value,
+        tuple,
+    }
 }
 
 /// This is the derive trait to add to struct you want to be prompt-able.
 #[doc = include_str!("../doc/attributs_derive.md")]
 #[proc_macro_derive(Promptable, attributes(promptable, prompt))]
-pub fn promptable_macro_derive(input: TokenStream) -> TokenStream {
+pub fn promptable_macro_derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let ast = syn::parse(input).unwrap();
     impl_promptable(&ast)
 }
 
-fn impl_promptable(ast: &syn::DeriveInput) -> TokenStream {
-    let attrs_struct = StructOpts::from_attributes(&ast.attrs).expect("Wrong attributes on struct");
-    let nom = &ast.ident;
-    let data = &ast.data;
+fn fields(data: &Data) -> Vec<(&Ident, &Type, &Vec<Attribute>)> {
     let data_struct = match data {
         Data::Struct(s) => s,
         _ => panic!("promptable_macro_derive ne peut que être utilisé sur des structs"),
     };
 
-    let fields = data_struct
+    data_struct
         .fields
         .iter()
         .map(|field| (field.ident.as_ref().unwrap(), &field.ty, &field.attrs))
-        .collect::<Vec<_>>();
+        .collect::<Vec<_>>()
+}
+
+fn prepare_value(opts: &FieldParams) -> proc_macro2::TokenStream {
+    let name_field = opts.ident;
+    if let Some(f) = &opts.function_render {
+        let function: proc_macro2::TokenStream = f.parse().unwrap();
+        quote! {
+            let field_value = &self.#name_field;
+            let value = #function;
+        }
+    } else if is_option(opts.ty) {
+        quote! {
+        let value =
+        if let Some(v) = &self.#name_field {
+            v.to_string()
+        } else {
+            String::from("None")
+        };
+        }
+    } else {
+        quote! {
+            let value = &self.#name_field;
+        }
+    }
+}
+
+fn get_opts_field<'a>(
+    nb: usize,
+    opts: &'a FieldOpts,
+    ident: &'a Ident,
+    ty: &'a Type,
+) -> FieldParams<'a> {
+    let name = if let Some(n) = &opts.name {
+        n.to_owned()
+    } else {
+        ident.to_string()
+    };
+    let msg = if let Some(msg) = &opts.msg {
+        msg.to_string()
+    } else {
+        format!("Insert value of {}:", name)
+    };
+
+    let visible = if let Some(v) = opts.visible { v } else { true };
+    FieldParams {
+        nb,
+        msg,
+        name,
+        ident,
+        ty,
+        function: &opts.function,
+        visible,
+        function_new: &opts.function_new,
+        function_mod: &opts.function_mod,
+        function_add: &opts.function_add,
+        function_render: &opts.function_render,
+        short_display: opts.short_display.unwrap_or_default(),
+        default: opts.default.unwrap_or_default(),
+        multiple_once: opts.multiple_once.unwrap_or_default(),
+    }
+}
+
+fn impl_promptable(ast: &syn::DeriveInput) -> proc_macro::TokenStream {
+    let global_params = opts2global(ast);
+
+    // génération de new_by_prompt struct fields
     let mut field_values_new = vec![];
+
+    // génération de modify_by_prompt fields
+    // options for prompt
     let mut fields_options = vec![];
+    // match and action
     let mut choix_action = vec![];
-    let mut fields_multiple_new = vec![];
+
     let mut fields_multiple_add = vec![];
-    let mut nb: usize = 0;
-    for (ident, ty, attrs) in fields.iter() {
+
+    let mut fields_display_short_precise = vec![];
+    let mut fields_display_short = vec![];
+    let mut fields_display_human = vec![];
+    for (nb, (ident, ty, attrs)) in fields(&ast.data).into_iter().enumerate() {
         let opts: FieldOpts = FieldOpts::from_attributes(attrs).expect("Wrong options");
-        // si champ est unique dans multiple, le créer pour multiple_new_by_prompt
+        let field_params = get_opts_field(nb, &opts, ident, ty);
 
-        // paniquer si certains attributs non compatibles sont utilisés en même temps.
-
-        if opts.default.is_some() && opts.msg.is_some() {
-            panic!("default et msg attribut en même n'a pas de sens.")
-        }
-        if opts.function_new.is_some() && opts.msg.is_some() {
-            panic!("function et msg attribut en même n'a pas de sens.")
-        }
-        if opts.function_new.is_some() && attrs_struct.params.is_none() {
-            panic!("function ne peux pas être utilisé si l'attribut params du struct n'est pas définit.{:?}\n utilisez deux guillements sans contenu si aucunb paramètres n'est nécéssaire", attrs_struct)
+        if !global_params.custom_prompt_display {
+            field_display_short_get(
+                &mut fields_display_short_precise,
+                &mut fields_display_short,
+                &field_params,
+            );
+            fields_display_human.push(field_display_human_get(&field_params));
         }
 
-        // récupérer nom field
-        let name = if let Some(n) = &opts.name {
-            n.to_owned()
-        } else {
-            ident.to_string()
-        };
-        let msg = if let Some(msg) = &opts.msg {
-            msg.to_string()
-        } else {
-            format!("Insert value of {}:", name)
-        };
-        let visible = if let Some(v) = opts.visible { v } else { true };
-        // tous les types de champs doivent implémenter Promptable ou au moins Default (il ne doit pas alors être demandé) si l'attribut fonction n'est pas renseigné.
-
-        let value = if let Some(f) = opts.function_new {
-            f.parse().unwrap()
-        } else if let Some(ref f) = opts.function {
-            f.parse().unwrap()
-        } else if opts.default.is_some_and(|c| c) {
-            if is_option(ty) {
-                quote! {None}
-            } else {
-                quote! {
-                    #ty::default()
-                }
-            }
-        } else if visible && !is_option(ty) {
-            quote! {
-            loop {
-                if let Some(prompt) = <#ty as promptable::Promptable>::new_by_prompt(#msg)?
-                 {
-                break prompt
-                    }
-                }
-            }
-        } else if visible && is_option(ty) {
-            let inner = option_type(ty).expect("could not find inner type of Option");
-            quote! {
-                    <#inner as promptable::Promptable>::new_by_prompt(#msg)?
-            }
-        } else if !visible && is_option(ty) {
-            quote! {
-                None
-            }
-        } else if !visible && !is_option(ty) {
-            quote! {
-                #ty::default()
-            }
-        } else {
-            panic!("attribut non attendu")
-        };
-
+        // add the line for this field for new_by_prompt
+        let value = generate_value_from_field_new(&field_params);
         field_values_new.push(quote! {
             #ident: #value
         });
 
-        let value_add = if let Some(f) = opts.function_add {
-            let f: proc_macro2::TokenStream = f.parse().unwrap();
-            quote! {
-                #ident: #f
-            }
-        } else {
-            quote! {#ident: #value}
-        };
+        // add the lines for this field for modify_by_prompt
+        prepare_value_from_field_modify(&field_params, &mut fields_options, &mut choix_action);
 
-        if visible {
-            // modify_by_prompt
-            let prepare_value = if let Some(f) = opts.function_render {
-                let function: proc_macro2::TokenStream = f.parse().unwrap();
-                quote! {
-                    let field_value = &self.#ident;
-                    let value = #function;
-                }
-            } else {
-                if is_option(ty) {
-                    quote! {
-                    let value =
-                    if let Some(v) = &self.#ident {
-                        v.to_string()
-                    } else {
-                        String::from("None")
-                    };
-                    }
-                } else {
-                    quote! {
-                        let value = &self.#ident;
-                    }
-                }
-            };
-            // préparer les choix
-
-            fields_options.push(quote! {
-                #prepare_value
-                options.push(format!("{}: {}", #name, value ))
-            });
-
-            // utiliser le choix
-            // let nb_choice = nb.checked_sub(1).expect(&format!("{nb}"));
-            let nb_choice = nb;
-            if let Some(fm) = &opts.function_mod {
-                let function_mod: proc_macro2::TokenStream = fm.parse().unwrap();
-                choix_action.push(quote! {
-                    if choix == options[#nb_choice] {
-                        last_choice = #nb_choice;
-                        self.#ident = #function_mod
-                    }
-                });
-            } else if let Some(fm) = &opts.function {
-                let function_mod: proc_macro2::TokenStream = fm.parse().unwrap();
-                choix_action.push(quote! {
-                    if choix == options[#nb_choice] {
-                        last_choice = #nb_choice;
-                        self.#ident = #function_mod
-                    }
-                });
-            } else if is_option(&ty) {
-                let inner = option_type(ty).expect("could not find inner type of Option");
-                choix_action.push(quote! {
-                    if choix == options[#nb_choice] {
-                        last_choice = #nb_choice;
-                        // if is option, the inner value must be passed.
-                        let inner_value_origin = self.#ident.clone().unwrap_or_default();
-                        let mut inner_value = inner_value_origin.clone();
-                        // the modify prompt will always put Some(v) or do nothing.
-                        // if the value is the same, do not change self.#ident.
-                        // This way, it will preserve the None if there was one before the modify_by_prompt method.
-                        <#inner as promptable::Promptable>::modify_by_prompt(&mut inner_value, #msg)?;
-                        if inner_value != inner_value_origin {
-                            self.#ident = Some(inner_value)
-                        }
-
-                    }
-                });
-            } else {
-                choix_action.push(quote! {
-                    if choix == options[#nb_choice] {
-                        last_choice = #nb_choice;
-                        <#ty as promptable::Promptable>::modify_by_prompt(&mut self.#ident, #msg)?
-                    }
-                });
-            }
-            nb += 1;
-        }
-
-        // ajout sur multiple
-        // field once = field
-
-        // ajout: demande en regardant les valeurs du premier. Ne peux pas être executé sur le vec vide.
-
-        // premier ajout
-        // value sur ident
-        // new
-
-        fields_multiple_new.push(quote! {
-            #ident: #value
-        });
-
-        // multiple, add
-
-        if opts.multiple_once.is_some_and(|c| c) {
-            fields_multiple_add.push(quote! {
-               #ident: self[0].#ident.clone()
-            })
-        } else {
-            fields_multiple_add.push(value_add);
-        }
+        // add line for this field for multiple add_by_prompt
+        fields_multiple_add.push(generate_line_add_by_prompt(&field_params, &value));
         // multiple mod
     }
-
-    fields_options.push(quote! {
-        options.push(format!("Confirm"))
-    });
-
-    choix_action.push(quote! {
-        if &choix == options.last().unwrap() {
-            return Ok(())
-        }
-    });
-    // récupérer les champs
+    add_last_actions_menu_modify(&mut choix_action);
 
     // paramètres nécéssaires pour utiliser les fonctions à mettre dans la signature de la méthode
 
-    let params = if let Some(p) = &attrs_struct.params {
-        p.parse().unwrap()
-    } else {
-        quote!()
-    };
+    // display fields
+    let impl_prompt_display = impl_prompt_display_generate(
+        fields_display_short_precise,
+        fields_display_short,
+        fields_display_human,
+        &global_params,
+    );
+    let impl_prompt_struct = impl_promptable_struct(
+        field_values_new,
+        fields_options,
+        choix_action,
+        &global_params,
+    );
+    let impl_prompt_vec_struct = impl_promptable_vec_struct(fields_multiple_add, &global_params);
 
-    let mut literal_params = vec![];
-    if let Some(pa) = &attrs_struct.params {
-        let params = pa.split(", ");
-        for p in params {
-            if let Some(p) = p.split_once(": ") {
-                literal_params.push(p.0)
-            }
-        }
-    }
-
-    let mut literal_params_separated = String::new();
-    for param in literal_params {
-        literal_params_separated.push_str(param);
-        literal_params_separated.push_str(", ");
-    }
-    let mut chars = literal_params_separated.chars();
-    chars.next_back();
-    chars.next_back();
-    let lps = chars.as_str();
-    let lps: proc_macro2::TokenStream = lps.parse().unwrap();
-    let msg_mod = if let Some(msg) = &attrs_struct.msg_mod {
-        msg
-    } else {
-        "Select the field to modify"
-    };
-
-    let trait_name: proc_macro2::TokenStream = format!("Promptable{}", nom).parse().unwrap();
-    let trait_name_multiple: proc_macro2::TokenStream =
-        format!("PromptableVec{}", nom).parse().unwrap();
     let generation = quote! {
-        pub trait #trait_name {
-            fn new_by_prompt(#params) -> anyhow::Result<#nom>;
-            fn modify_by_prompt(&mut self, #params) -> anyhow::Result<()>;
-        }
-            impl #trait_name for #nom {
-                fn new_by_prompt(#params) -> anyhow::Result<#nom> {
-                    promptable::clear_screen();
-                loop {
-                 return Ok(#nom {
-                    #( #field_values_new ),*
-                    })
-
-                }
-                }
-                 fn modify_by_prompt(&mut self, #params) -> anyhow::Result<()> {
-                     let mut last_choice = 0;
-                     loop {
-                     promptable::clear_screen();
-                     let mut options = vec![];
-                     #( #fields_options );*;
-                     if let Some(choix) = inquire::Select::new(#msg_mod, options.clone()).with_starting_cursor(last_choice).prompt_skippable()? {
-                     #( #choix_action)*
-                     } else {
-                         continue
-                     }
-                     }
-                 }
-             }
-
-       pub trait #trait_name_multiple {
-            fn new() -> Vec<#nom> {
-               Vec::new()
-            }
-            fn add_by_prompt(&mut self, #params) -> anyhow::Result<()>;
-            fn delete_by_prompt(&mut self) -> anyhow::Result<()>;
-            fn modify(&mut self, #params) -> anyhow::Result<()>;
-            fn multiple_by_prompt(&mut self, #params) -> anyhow::Result<()>;
-        }
-            impl #trait_name_multiple for Vec<#nom> {
-             fn add_by_prompt(&mut self, #params)  -> anyhow::Result<()>{
-                loop {
-                    promptable::clear_screen();
-             self.push(#nom {
-                    #( #fields_multiple_add ),*
-                });
-                    break
-                }
-                Ok(())
-            }
-
-             fn delete_by_prompt(&mut self)  -> anyhow::Result<()> {
-                    promptable::clear_screen();
-                let choix = match inquire::MultiSelect::new("Sélection de l'objet à modifier", self.clone()).raw_prompt_skippable()? {
-                    Some(l) => l,
-                    None => return Ok(()),
-                };
-                let mut indexes = Vec::new();
-                for c in choix {
-                    indexes.push(c.index);
-                }
-                indexes.sort_unstable_by(|a, b| b.cmp(a));
-                for index in indexes {
-                self.remove(index);
-                }
-                Ok(())
-            }
-
-            fn modify(&mut self, #params)  -> anyhow::Result<()>{
-                    promptable::clear_screen();
-                let choix =  inquire::Select::new("Sélection de l'objet à modifier", self.clone()).raw_prompt()?;
-                self.remove(choix.index);
-                let mut to_mod = choix.value;
-                // to_mod.modify_by_prompt(#lps)?;
-                self.push(to_mod);
-                Ok(())
-            }
-
-             fn multiple_by_prompt(&mut self, #params) -> anyhow::Result<()>{
-
-                    // passer dans une loop menu
-                let choix1 = "ajout".to_string();
-                let choix2 = "modifier".to_string();
-                let choix3 = "supprimer".to_string();
-                let choix4 = "valider".to_string();
-                let mut options = vec![];
-                options.push(choix1.clone());
-                options.push(choix2.clone());
-                options.push(choix3.clone());
-                options.push(choix4.clone());
-    loop {
-                if self.is_empty() {
-                    self.push(#nom::new_by_prompt(#lps)?);
-                }
-                    promptable::clear_screen();
-                    let choix = match inquire::Select::new(#msg_mod, options.clone()).prompt_skippable()? {
-                        Some(c) => c,
-                        None => continue
-                    };
-                    if choix == choix1 {
-                        self.add_by_prompt(#lps)?
-                    } else
-                    if choix == choix2 {
-                        self.modify(#lps)?
-                    } else
-                    if choix == choix3 {
-                        self.delete_by_prompt()?
-                    } else
-                    if choix == choix4 {
-                        break                    }
-
-                    }
-                Ok(())
-                }
-         }
-
-
+        #impl_prompt_display
+        #impl_prompt_struct
+        #impl_prompt_vec_struct
     };
     generation.into()
 }
-// fn get_value_attribut(attrs: &Vec<Attribute>, attribut_name: &str, replace: String) -> String {
-//     let attr = attrs
-//         .iter()
-//         .filter(|x| x.path().is_ident(attribut_name))
-//         .collect::<Vec<_>>();
 
-//     if !attr.is_empty() {
-//         match attr[0].parse_args().unwrap() {
-//             syn::Meta::NameValue(syn::MetaNameValue { path: _, value, .. }) => match value {
-//                 Expr::Lit(v) => v.lit.suffix().to_string(),
-//                 _ => panic!("pas de valeur litéral ?"),
-//             },
-//             _ => panic!("malformed attribute syntax"),
-//         }
-//     } else {
-//         replace
-//     }
-// }
 #[doc(hidden)]
 fn is_option(ty: &Type) -> bool {
     if let syn::Type::Path(ref typath) = ty {
@@ -435,6 +252,7 @@ fn is_option(ty: &Type) -> bool {
         false
     }
 }
+
 #[doc(hidden)]
 fn option_type(ty: &syn::Type) -> Option<&syn::Type> {
     let syn::Type::Path(ty) = ty else { return None };

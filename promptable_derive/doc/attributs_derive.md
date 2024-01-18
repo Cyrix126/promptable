@@ -2,7 +2,7 @@
 
 Here's an explanation of every attributs you can use to customize the methods created for your structs.
 
-All structs using this derive trait must also implement the trait Clone and Display. You will get an error at compile time if it's not the case.
+All structs using this derive trait must also implement the trait Clone. You will get an error at compile time if it's not the case.
 
 
 ## Struct attributs
@@ -10,16 +10,27 @@ All structs using this derive trait must also implement the trait Clone and Disp
 
 - ##### `#[promp(params = String)]`
 
-Transfer the signature to the trait and method to be able to use functions with parameters inside methods. Use with field attribut function_new or function_mod.
+Transfer the signature to methods to be able to use functions with parameters. It makes only sense if you use it with fields attributs function*.
 Put here every parameters that will be needed for the functions to be executed inside the methods.
-If you have two attributs with functions, except if you want the same parameter to be passed, you need to put all the parameters for each function.
+If you have two functions with attributs, except if you want the same parameter to be passed, you need to put all the parameters for each function.
 
 - ##### `#[promp(msg_mod = String)]`
 
 Message to show when in the prompt menu to modify the struct.
 
+- ##### `#[promp(custom_prompt_display = bool)]`
+
+Allows you to disable the implementation of PromptableDisplay by the macro to let you make your own custom implementation.
+You will need to implement the PromptableDisplay trait for your Struct and for the type of name "VecStruct", Struct as the name of your Struct.
+- ##### `#[promp(name = String)]`
+
+To change the default name of your Struct that will appear in prompts.
 
 ## Fields attributs
+
+- ##### `#[promptable(short_display = bool)]`
+
+Use only this field for the short_display method. Will take the first 3 visible fields by default. You can apply it on any fields to show multiples fields for short_display.
 
 - ##### `#[promptable(default = bool)]`
 

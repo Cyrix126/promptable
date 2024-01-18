@@ -1,6 +1,6 @@
 [package]
 name = "promptable"
-version = "0.4.0"
+version = "0.5.0"
 edition = "2021"
 description = "macro derive for promptable"
 publish = false # TODO
@@ -10,18 +10,18 @@ readme = "README.md"
 authors = ["Louis-Marie Baer <lm@baermail.fr>"]
 keywords = ["cli", "ask", "prompt", "question", "interactive", "derive"]
 categories = ["command-line-interface", "value-formatting", "derive"]
-rust-version = "1.77"
 [dependencies]
 inquire = { git = "https://github.com/Cyrix126/inquire-time", features=["macros"], optional = true}
 time = {version = "0.3", optional = true}
 termion = {version = "2", optional=true}
 anyhow = "1"
-derive_more = {version="0", default-features=false, features=["display", "deref"]}
+derive_more = {version="0", default-features=false, features=["display", "deref", "deref_mut"]}
 promptable_derive = {path = "../promptable_derive", optional = true}
-
- [features]
-default = ["inquire/editor", "time", "promptable_derive", "termion"]
-
+similar = {version="2", optional=true}
+trait-gen = "0"
+[features]
+default = ["inquire/editor", "time", "promptable_derive", "termion", "menu"]
+menu = ["display"]
+display = ["similar"]
 [package.metadata.docs.rs]
 cargo-args = ["-Zunstable-options", "-Zrustdoc-scrape-examples"]
-

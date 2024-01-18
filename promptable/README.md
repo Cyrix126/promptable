@@ -8,7 +8,7 @@ The crate inquire allows to get more customizable and intuitive prompts for spec
 
 One of the goal of this crate is to be modular to be able to change the prompt backend. Nevertheless, For my own personnal use case I only need inquire as a prompt backend right now.
 
-The big part of this library is to bring also the declarative macro [Promptable](promptable_derive) to make structs prompt-able very quickly but also with a lot of possibilities.
+The big part of this library is to bring the declarative macro [Promptable](promptable_derive) to make structs prompt-able very quickly but also with a lot of possibilities.
 
 
 ## Features:
@@ -29,10 +29,13 @@ With the trait Promptable, you have two methods. One for creating a new value an
 
 ```rust,no_run
 use promptable::Promptable;
-if let Some(mut anwser) = bool::new_by_prompt("Do you agree ?").unwrap() {
-anwser.modify_by_prompt("Are you sure ?").unwrap();
+if let Some(mut anwser) = bool::new_by_prompt("Do you agree ?")? {
+anwser.modify_by_prompt("Are you sure ?")?;
 let age = i32::new_by_prompt("What is your age ?");
 }
+let mut ages: Vec<u32> = Vec::new();
+ages.modify_by_prompt("Manage multiples ages")?;
+Ok::<(), anyhow::Error>(())
 ```
 
 You can see more examples in the /examples folder.  
