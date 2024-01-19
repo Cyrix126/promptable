@@ -70,6 +70,8 @@ Calls the function described as String instead of promptable::Promptable::modify
 
 Calls the function described as String instead of promptable::Promptable::new_by_prompt() for this field while adding an instance of this struct on a Vec. This function can use self to use the vec. Refer to the example "complex_form" to see it in action.
 
+This is different from function_new. For example function_add can implement some differences when creating a new element using already existing elements of the vec.
+
 - ##### `#[promptable(function = String)]`
 
 Will put the same function as for function_new and function_mod.
