@@ -1,17 +1,19 @@
 #![warn(missing_docs)]
 #![doc = include_str!("../README.md")]
 
+use anyhow::Result;
 use derive_more::{Deref, Display};
 use display::PromptableDisplay;
 use inquire::{Confirm, CustomType, DateSelect, Select, Text};
 use menu::{menu_cancel, menu_confirm, MenuClassic};
-pub extern crate inquire;
-pub extern crate promptable_derive;
-use anyhow::Result;
 use termion::{clear::All, cursor::Goto};
 use time::{Date as DateOrigin, OffsetDateTime};
 use trait_gen::trait_gen;
 
+pub extern crate anyhow;
+pub extern crate derive_more;
+pub extern crate inquire;
+pub extern crate promptable_derive;
 /// module to implement different type of Display
 #[cfg(feature = "display")]
 pub mod display;

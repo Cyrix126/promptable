@@ -14,7 +14,7 @@ pub(crate) fn impl_promptable_struct(
     let msg_mod = &global_params.msg_mod;
     quote! {
                 impl promptable::Promptable<(#tuple)> for #name {
-                    fn new_by_prompt(params: (#tuple)) -> anyhow::Result<Option<#name>> {
+                    fn new_by_prompt(params: (#tuple)) -> promptable::anyhow::Result<Option<#name>> {
                         promptable::clear_screen();
                         #( #params_as_named_value )*
                     loop {
@@ -25,7 +25,7 @@ pub(crate) fn impl_promptable_struct(
                     }
                 // Ok(None)
                     }
-                     fn modify_by_prompt(&mut self, params: (#tuple)) -> anyhow::Result<()> {
+                     fn modify_by_prompt(&mut self, params: (#tuple)) -> promptable::anyhow::Result<()> {
                         #( #params_as_named_value )*
                          let self_restore = self.clone();
                          let mut last_choice = 0;

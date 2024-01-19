@@ -1,9 +1,9 @@
 [package]
 name = "promptable"
-version = "0.5.0"
+version = "0.5.1"
 edition = "2021"
 description = "macro derive for promptable"
-publish = false # TODO
+publish = false # TODO need to merge inquire-time into upstream or publish it
 repository = "https://github.com/Cyrix126/promptable"
 license = "GPL-3.0-only"
 readme = "README.md"

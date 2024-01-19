@@ -15,18 +15,18 @@ pub(crate) fn impl_promptable_vec_struct(
 
     quote! {
                 // least bad solution ?
-                #[derive(derive_more::Deref, derive_more::DerefMut)]
+                #[derive(promptable::derive_more::Deref, promptable::derive_more::DerefMut)]
                 pub struct #vec_name(Vec<#name>);
 
                         impl promptable::Promptable<(#tuple)> for #vec_name {
-            fn new_by_prompt(params: (#tuple)) -> anyhow::Result<Option<#vec_name>> {
+            fn new_by_prompt(params: (#tuple)) -> promptable::anyhow::Result<Option<#vec_name>> {
                 if let Some(r) = #name::new_by_prompt(params)? {
                  Ok(Some(#vec_name(vec![r])))
                 } else {
                  Ok(None)
                 }
             }
-            fn modify_by_prompt(&mut self, params: (#tuple)) -> anyhow::Result<()> {
+            fn modify_by_prompt(&mut self, params: (#tuple)) -> promptable::anyhow::Result<()> {
                 let options_menu = promptable::menu::MenuClassic::consts();
                 // idea: rather than cloning the self and chaning a new self or an old self, why not create a vec and only add what changes and then apply on self if confirmed ?
                 let restore_self = self.clone();
@@ -61,7 +61,7 @@ pub(crate) fn impl_promptable_vec_struct(
                 }
 
     impl #vec_name {
-                    fn add_by_prompt_vec(&mut self, params: (#tuple))  -> anyhow::Result<()>{
+                    fn add_by_prompt_vec(&mut self, params: (#tuple))  -> promptable::anyhow::Result<()>{
                     // rename tuple parts with name to use with functions if any
                                 #( #params_as_named_value )*
                             // loop {
@@ -76,7 +76,7 @@ pub(crate) fn impl_promptable_vec_struct(
                             Ok(())
                         }
 
-                         fn delete_by_prompt_vec(&mut self, params: (#tuple))  -> anyhow::Result<()> {
+                         fn delete_by_prompt_vec(&mut self, params: (#tuple))  -> promptable::anyhow::Result<()> {
                                 promptable::clear_screen();
             let choix = match inquire::MultiSelect::new(
                 "Select objects to delete",
@@ -100,7 +100,7 @@ pub(crate) fn impl_promptable_vec_struct(
         fn modify_by_prompt_vec(
             &mut self,
             params: (#tuple),
-        ) -> anyhow::Result<()> {
+        ) -> promptable::anyhow::Result<()> {
                                 promptable::clear_screen();
             let choix = inquire::Select::new(
                 "Select object to modify",
