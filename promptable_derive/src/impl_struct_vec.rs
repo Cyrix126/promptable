@@ -9,6 +9,7 @@ pub(crate) fn impl_promptable_vec_struct(
     global_params: &GlobalParams,
 ) -> TokenStream {
     let name = &global_params.name;
+    let name_str = &global_params.name.to_string();
     let msg_mod = &global_params.msg_mod;
     let tuple = &global_params.tuple;
     let params_as_named_value = &global_params.params_as_named_value;
@@ -16,7 +17,8 @@ pub(crate) fn impl_promptable_vec_struct(
 
     quote! {
                 // least bad solution ?
-                #[derive(promptable::derive_more::Deref, promptable::derive_more::DerefMut, Clone)]
+                #[derive(promptable::derive_more::Deref, promptable::derive_more::DerefMut, Clone, promptable::derive_more::Display)]
+                #[display(fmt=#name_str)]
                 pub struct #vec_name(Vec<#name>);
 
                         impl promptable::Promptable<(#tuple)> for #vec_name {

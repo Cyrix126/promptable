@@ -68,20 +68,29 @@ pub(crate) fn impl_prompt_display_generate(
     if !global_params.custom_prompt_display {
         let short_fields = field_display_short_fusion(fields_short_precise, fields_short);
         let name = &global_params.name;
+        let vec_name: TokenStream = format!("Vec{}", name).parse().unwrap();
         quote! {
             impl promptable::display::PromptableDisplay for #name {
-        fn display_short(&self) -> String {
+                fn display_short(&self) -> String {
                     let mut str = vec![];
-                            #( #short_fields )*
+                    #( #short_fields )*
                     str.join("\n")
                 }
-        fn display_human(&self) -> String {
+                fn display_human(&self) -> String {
                     let mut str = vec![];
-                            #( #fields_human)*
+                    #( #fields_human)*
                     str.join("\n")
                 }
             }
+            impl promptable::display::PromptableDisplay for #vec_name {
+                fn display_short(&self) -> String {
+                    self.0.display_short()
+                }
+                fn display_human(&self) -> String {
+                  self.0.display_short()
+                  }
             }
+        }
     } else {
         quote! {}
     }

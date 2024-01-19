@@ -33,13 +33,6 @@ If a struct call a method new_by_prompt, the user must anwser every questions wi
 This could be a better way so that the structs don't create a trait for each of them.
 
 
-## Menu Helper
+## Good diagnostic
 
-Offer a Menu struct that is composed of const and a method to get those consts. I would be usefull to match against after giving them as options to a Select prompt.
-
-## Different Display Implementation
-
-Structs could be displayed with intermediate level of verbose.
-
-Implementation for Vec<T> would be a simple join.
-https://docs.rs/display_utils/latest/display_utils/
+Right now, because of the nature of the macro, it is difficult to diagnose from the user dev side of view. A lot couldbe done in this regard, specially for common errors when making the struct.
