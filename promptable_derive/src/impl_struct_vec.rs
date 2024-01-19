@@ -108,7 +108,8 @@ pub(crate) fn impl_promptable_vec_struct(
                 self.iter().map(|e| <#name as promptable::display::PromptableDisplay>::display_short(e)).collect(),
             )
             .raw_prompt()?;
-            self[choix.index].modify_by_prompt(params)?;
+            // self[choix.index].modify_by_prompt(params)?;
+            <#name as promptable::Promptable<(#tuple)>>::modify_by_prompt(&mut self[choix.index], params)?;
             Ok(())
         }
             }

@@ -1,6 +1,6 @@
 [package]
 name = "promptable"
-version = "0.5.1"
+version = "0.5.3"
 edition = "2021"
 description = "macro derive for promptable"
 publish = false # TODO need to merge inquire-time into upstream or publish it
