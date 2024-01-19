@@ -17,13 +17,16 @@ pub(crate) fn impl_promptable_struct(
                     fn new_by_prompt(params: (#tuple)) -> promptable::anyhow::Result<Option<#name>> {
                         promptable::clear_screen();
                         #( #params_as_named_value )*
-                    loop {
+                    // old version: will ask until there is a value
+                    // new version: if a needed value is canceld, return none.
+                    // in this new version, function must return Result<Option<value>>
+                    // if let Some will not be used for Option<T> value but the return value will be passed directly
+
+                    //
                      return Ok(Some(#name {
                         #( #field_values_new ),*
                         }))
 
-                    }
-                // Ok(None)
                     }
                      fn modify_by_prompt(&mut self, params: (#tuple)) -> promptable::anyhow::Result<()> {
                         #( #params_as_named_value )*
@@ -46,47 +49,6 @@ pub(crate) fn impl_promptable_struct(
                      }
 
     }
-    }
-}
-pub(crate) fn generate_value_from_field_new(opts: &FieldParams) -> proc_macro2::TokenStream {
-    let msg = &opts.msg;
-    let ty = opts.ty;
-    if let Some(f) = &opts.function_new {
-        f.parse().unwrap()
-    } else if let Some(ref f) = opts.function {
-        f.parse().unwrap()
-    } else if opts.default {
-        if is_option(ty) {
-            quote! {None}
-        } else {
-            quote! {
-                #ty::default()
-            }
-        }
-    } else if opts.visible && !is_option(ty) {
-        quote! {
-        loop {
-            if let Some(prompt) = <#ty as promptable::Promptable<&str>>::new_by_prompt(#msg)?
-             {
-            break prompt
-                }
-            }
-        }
-    } else if opts.visible && is_option(ty) {
-        let inner = option_type(ty).expect("could not find inner type of Option");
-        quote! {
-                <#inner as promptable::Promptable<&str>>::new_by_prompt(#msg)?
-        }
-    } else if !opts.visible && is_option(ty) {
-        quote! {
-            None
-        }
-    } else if !opts.visible && !is_option(ty) {
-        quote! {
-            #ty::default()
-        }
-    } else {
-        panic!("attribut non attendu")
     }
 }
 pub(crate) fn add_last_actions_menu_modify(choix_action: &mut Vec<proc_macro2::TokenStream>) {
@@ -128,20 +90,23 @@ pub(crate) fn prepare_value_from_field_modify(
         let nb_choice = nb;
         if let Some(fm) = &opts.function_mod {
             let function_mod: proc_macro2::TokenStream = fm.parse().unwrap();
-            choix_action.push(quote! {
-                if choix == options[#nb_choice] {
-                    last_choice = #nb_choice;
-                    self.#ident = #function_mod
-                }
-            });
-        } else if let Some(fm) = &opts.function {
-            let function_mod: proc_macro2::TokenStream = fm.parse().unwrap();
-            choix_action.push(quote! {
-                if choix == options[#nb_choice] {
-                    last_choice = #nb_choice;
-                    self.#ident = #function_mod
-                }
-            });
+            if is_option(opts.ty) {
+                choix_action.push(quote! {
+                    if choix == options[#nb_choice] {
+                        last_choice = #nb_choice;
+                        self.#ident = #function_mod?
+                    }
+                });
+            } else {
+                choix_action.push(quote! {
+                    if choix == options[#nb_choice] {
+                        last_choice = #nb_choice;
+                            if let Some(v) = #function_mod? {
+                                self.#ident = v
+                            }
+                    }
+                });
+            }
         } else if is_option(opts.ty) {
             let inner = option_type(opts.ty).expect("could not find inner type of Option");
             choix_action.push(quote! {

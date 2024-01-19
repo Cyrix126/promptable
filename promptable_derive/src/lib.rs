@@ -7,8 +7,7 @@ use display::{
     field_display_human_get, field_display_short_get, impl_prompt_display_generate, option2bool,
 };
 use impl_struct::{
-    add_last_actions_menu_modify, generate_value_from_field_new, impl_promptable_struct,
-    prepare_value_from_field_modify,
+    add_last_actions_menu_modify, impl_promptable_struct, prepare_value_from_field_modify,
 };
 use impl_struct_vec::{generate_line_add_by_prompt, impl_promptable_vec_struct};
 use params::{get_from_params, prepare_value_as_function_param};
@@ -44,9 +43,8 @@ struct FieldParams<'a> {
     ident: &'a Ident,
     visible: bool,
     ty: &'a Type,
-    function: &'a Option<String>,
-    function_new: &'a Option<String>,
-    function_mod: &'a Option<String>,
+    function_new: Option<&'a String>,
+    function_mod: Option<&'a String>,
     function_add: &'a Option<String>,
     multiple_once: bool,
     function_render: &'a Option<String>, // field_value mut be in parameter
@@ -114,30 +112,6 @@ fn fields(data: &Data) -> Vec<(&Ident, &Type, &Vec<Attribute>)> {
         .collect::<Vec<_>>()
 }
 
-fn prepare_value(opts: &FieldParams) -> proc_macro2::TokenStream {
-    let name_field = opts.ident;
-    if let Some(f) = &opts.function_render {
-        let function: proc_macro2::TokenStream = f.parse().unwrap();
-        quote! {
-            let field_value = &self.#name_field;
-            let value = #function;
-        }
-    } else if is_option(opts.ty) {
-        quote! {
-        let value =
-        if let Some(v) = &self.#name_field {
-            v.to_string()
-        } else {
-            String::from("None")
-        };
-        }
-    } else {
-        quote! {
-            let value = &self.#name_field;
-        }
-    }
-}
-
 fn get_opts_field<'a>(
     nb: usize,
     opts: &'a FieldOpts,
@@ -156,16 +130,29 @@ fn get_opts_field<'a>(
     };
 
     let visible = if let Some(v) = opts.visible { v } else { true };
+    let function_new = if let Some(f) = &opts.function_new {
+        Some(f)
+    } else if let Some(f) = &opts.function {
+        Some(f)
+    } else {
+        None
+    };
+    let function_mod = if let Some(f) = &opts.function_mod {
+        Some(f)
+    } else if let Some(f) = &opts.function {
+        Some(f)
+    } else {
+        None
+    };
     FieldParams {
         nb,
         msg,
         name,
         ident,
         ty,
-        function: &opts.function,
         visible,
-        function_new: &opts.function_new,
-        function_mod: &opts.function_mod,
+        function_new,
+        function_mod,
         function_add: &opts.function_add,
         function_render: &opts.function_render,
         short_display: opts.short_display.unwrap_or_default(),
@@ -205,16 +192,17 @@ fn impl_promptable(ast: &syn::DeriveInput) -> proc_macro::TokenStream {
         }
 
         // add the line for this field for new_by_prompt
-        let value = generate_value_from_field_new(&field_params);
+        let value_new = generate_value_from_field(&field_params, true);
+        let value_add = generate_value_from_field(&field_params, false);
         field_values_new.push(quote! {
-            #ident: #value
+            #ident: #value_new
         });
 
         // add the lines for this field for modify_by_prompt
         prepare_value_from_field_modify(&field_params, &mut fields_options, &mut choix_action);
 
         // add line for this field for multiple add_by_prompt
-        fields_multiple_add.push(generate_line_add_by_prompt(&field_params, &value));
+        fields_multiple_add.push(generate_line_add_by_prompt(&field_params, &value_add));
         // multiple mod
     }
     add_last_actions_menu_modify(&mut choix_action);
@@ -286,4 +274,98 @@ fn option_type(ty: &syn::Type) -> Option<&syn::Type> {
     };
 
     Some(inner_type)
+}
+
+fn prepare_value(opts: &FieldParams) -> proc_macro2::TokenStream {
+    let name_field = opts.ident;
+    if let Some(f) = &opts.function_render {
+        let function: proc_macro2::TokenStream = f.parse().unwrap();
+        quote! {
+            let field_value = &self.#name_field;
+            let value = #function;
+        }
+    } else if is_option(opts.ty) {
+        quote! {
+        let value =
+        if let Some(v) = &self.#name_field {
+            v.to_string()
+        } else {
+            String::from("None")
+        };
+        }
+    } else {
+        quote! {
+            let value = &self.#name_field;
+        }
+    }
+}
+fn generate_value_from_field(opts: &FieldParams, new_or_add: bool) -> proc_macro2::TokenStream {
+    let msg = &opts.msg;
+    let ty = opts.ty;
+
+    let cancel_value = if new_or_add {
+        quote! {return Ok(None)}
+    } else {
+        quote! {return Ok(())}
+    };
+
+    // if function is present, visible and default should not be used for this field.
+    // if function or method, propagate errors with ?
+    // if !is_option and !default, extract value from Some or return Cancel (Ok(None)) instead of Ok(Some(T))
+
+    // execute functions, propagating errors, stop if function return None when a value was needed.
+
+    if let Some(f) = opts.function_new {
+        let func: TokenStream = f.parse().unwrap();
+        if is_option(ty) {
+            return quote! {
+                #func?
+            };
+        } else {
+            return quote! {
+                if let Some(v) = #func? {
+                    v
+                } else {
+                    #cancel_value
+                 }
+            };
+        }
+    }
+
+    // if not function, see if visible and default value
+
+    if opts.default {
+        if is_option(ty) {
+            quote! {None}
+        } else {
+            quote! {
+                #ty::default()
+            }
+        }
+    } else if opts.visible && !is_option(ty) {
+        quote! {
+        if let Some(prompt) = <#ty as promptable::Promptable<&str>>::new_by_prompt(#msg)?
+         {
+        prompt
+            } else {
+                #cancel_value
+        }
+        }
+    } else if opts.visible && is_option(ty) {
+        let inner = option_type(ty).expect("could not find inner type of Option");
+        // transfer the Option<T> directly
+        quote! {
+                <#inner as promptable::Promptable<&str>>::new_by_prompt(#msg)?
+        }
+    } else if !opts.visible && is_option(ty) {
+        quote! {
+            None
+        }
+    } else if !opts.visible && !is_option(ty) {
+        quote! {
+            #ty::default()
+        }
+    } else {
+        panic!("attribut non attendu")
+    }
 }

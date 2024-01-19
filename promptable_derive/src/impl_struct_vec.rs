@@ -1,6 +1,7 @@
 use proc_macro2::TokenStream;
 use quote::quote;
 
+use crate::is_option;
 use crate::FieldParams;
 use crate::GlobalParams;
 pub(crate) fn impl_promptable_vec_struct(
@@ -126,9 +127,19 @@ pub(crate) fn generate_line_add_by_prompt(
             }
         }
     } else if let Some(f) = &opts.function_add {
-        let f: proc_macro2::TokenStream = f.parse().unwrap();
-        quote! {
-            #ident: #f
+        let f: TokenStream = f.parse().unwrap();
+        if is_option(opts.ty) {
+            quote! {
+                #ident: #f?
+            }
+        } else {
+            quote! {
+             #ident: if let Some(v) = #f? {
+                          v
+                    } else {
+                        return Ok(())
+                    }
+            }
         }
     } else {
         quote! {#ident: #value}
