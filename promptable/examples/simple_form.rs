@@ -11,14 +11,14 @@ pub struct Form {
 }
 
 fn main() -> Result<()> {
-    // // single element and modify it.
-    // let form = Form::new_by_prompt(())?;
-    // if let Some(mut f) = form {
-    //     f.modify_by_prompt(())?;
-    // }
-    // // create and manage multiples element.
-    // let mut forms = VecForm(Vec::new());
-    // forms.modify_by_prompt(())?;
+    // single element and modify it.
+    let form = Form::new_by_prompt(())?;
+    if let Some(mut f) = form {
+        f.modify_by_prompt(())?;
+    }
+    // create and manage multiples element.
+    let mut forms = VecForm(Vec::new());
+    forms.modify_by_prompt(())?;
 
     Ok(())
 }
