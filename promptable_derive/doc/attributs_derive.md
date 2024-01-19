@@ -65,16 +65,17 @@ If returned is None, the prompt will be canceled Ok(None).
 - ##### `#[promptable(function_mod = String)]`
 
 Calls the function described as String instead of promptable::Promptable::modify_by_prompt() for this field while modifying an instance of this struct.
+This function **SHOULD** take "field" as parameter (field: &mut T) (except if you do not want this function to modify your field).
+This parameter is a mutable borrowed of the value of the field.
+This function must return Result\<()\>
 
 - ##### `#[promptable(function_add = String)]`
 
 Calls the function described as String instead of promptable::Promptable::new_by_prompt() for this field while adding an instance of this struct on a Vec. This function can use self to use the vec. Refer to the example "complex_form" to see it in action.
 
 This is different from function_new. For example function_add can implement some differences when creating a new element using already existing elements of the vec.
-
-- ##### `#[promptable(function = String)]`
-
-Will put the same function as for function_new and function_mod.
+This function can take immutable borrow self as parameter, to access the values in the entire vec.
+This function must return Result\<Option\<T\>\>.
 
 - ##### `#[promptable(function_render = String)]`
 

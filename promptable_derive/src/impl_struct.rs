@@ -90,23 +90,13 @@ pub(crate) fn prepare_value_from_field_modify(
         let nb_choice = nb;
         if let Some(fm) = &opts.function_mod {
             let function_mod: proc_macro2::TokenStream = fm.parse().unwrap();
-            if is_option(opts.ty) {
-                choix_action.push(quote! {
-                    if choix == options[#nb_choice] {
-                        last_choice = #nb_choice;
-                        self.#ident = #function_mod?
-                    }
-                });
-            } else {
-                choix_action.push(quote! {
-                    if choix == options[#nb_choice] {
-                        last_choice = #nb_choice;
-                            if let Some(v) = #function_mod? {
-                                self.#ident = v
-                            }
-                    }
-                });
-            }
+            choix_action.push(quote! {
+                if choix == options[#nb_choice] {
+                    last_choice = #nb_choice;
+                    let field = &mut self.#ident;
+                    #function_mod?;
+                }
+            });
         } else if is_option(opts.ty) {
             let inner = option_type(opts.ty).expect("could not find inner type of Option");
             choix_action.push(quote! {

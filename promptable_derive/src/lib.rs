@@ -29,7 +29,6 @@ struct FieldOpts {
     visible: Option<bool>,
     function_render: Option<String>, // field_value mut be in parameter
     msg: Option<String>,
-    function: Option<String>,
     function_new: Option<String>,
     function_mod: Option<String>,
     function_add: Option<String>, // self.ident peut-être utilisé
@@ -43,11 +42,11 @@ struct FieldParams<'a> {
     ident: &'a Ident,
     visible: bool,
     ty: &'a Type,
-    function_new: Option<&'a String>,
-    function_mod: Option<&'a String>,
+    function_new: &'a Option<String>,
+    function_mod: &'a Option<String>,
     function_add: &'a Option<String>,
-    multiple_once: bool,
     function_render: &'a Option<String>, // field_value mut be in parameter
+    multiple_once: bool,
     short_display: bool,
     default: bool,
 }
@@ -130,20 +129,6 @@ fn get_opts_field<'a>(
     };
 
     let visible = if let Some(v) = opts.visible { v } else { true };
-    let function_new = if let Some(f) = &opts.function_new {
-        Some(f)
-    } else if let Some(f) = &opts.function {
-        Some(f)
-    } else {
-        None
-    };
-    let function_mod = if let Some(f) = &opts.function_mod {
-        Some(f)
-    } else if let Some(f) = &opts.function {
-        Some(f)
-    } else {
-        None
-    };
     FieldParams {
         nb,
         msg,
@@ -151,8 +136,8 @@ fn get_opts_field<'a>(
         ident,
         ty,
         visible,
-        function_new,
-        function_mod,
+        function_new: &opts.function_new,
+        function_mod: &opts.function_mod,
         function_add: &opts.function_add,
         function_render: &opts.function_render,
         short_display: opts.short_display.unwrap_or_default(),

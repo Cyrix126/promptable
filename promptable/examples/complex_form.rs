@@ -1,5 +1,3 @@
-use std::fmt::Display;
-
 use anyhow::Result;
 use inquire::{Editor, Select};
 use promptable::{Date, Promptable};
@@ -11,7 +9,8 @@ pub struct Prestation {
     #[promptable(function_add = "increment(&self.last().unwrap())")]
     id: u32,
     #[promptable(multiple_once = true)]
-    #[promptable(function = "search_client(msg_search, clients)")]
+    #[promptable(function_new = "search_client(msg_search, clients)")]
+    #[promptable(function_mod = "search_client_mod(field, msg_search, clients)")]
     client: String,
     #[promptable(default = true)]
     // will put the default value of Date (which is today), can be modified.
@@ -19,18 +18,14 @@ pub struct Prestation {
     hours: f32,
     #[promptable(function_render = "add_euros(field_value)")]
     price: f32,
+    // #[promptable(function_mod = "can_not_be_unpayed(initial_value)")]
     payed: bool,
-    #[promptable(function = "editor(msg_editor)")]
+    #[promptable(function_new = "editor(msg_editor)")]
+    #[promptable(function_mod = "editor_mod(field, msg_editor)")]
     description: String,
     #[promptable(visible = false)]
     // will be skipped, can't edit by prompt, will use default value, None if Option.
     field_not_promptable: i128,
-}
-
-impl Display for Prestation {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}\n{}\n{}", self.id, self.client, self.date)
-    }
 }
 
 fn increment(p: &Prestation) -> Result<Option<u32>> {
@@ -39,9 +34,21 @@ fn increment(p: &Prestation) -> Result<Option<u32>> {
 fn search_client(msg_search: &str, clients: &[String]) -> Result<Option<String>> {
     Ok(Select::new(msg_search, clients.to_owned()).prompt_skippable()?)
 }
+fn search_client_mod(field: &mut String, msg_search: &str, clients: &[String]) -> Result<()> {
+    if let Some(s) = Select::new(msg_search, clients.to_owned()).prompt_skippable()? {
+        *field = s;
+    }
+    Ok(())
+}
 
 fn editor(msg_editor: &str) -> Result<Option<String>> {
     Ok(Editor::new(msg_editor).prompt_skippable()?)
+}
+fn editor_mod(field: &mut String, msg_editor: &str) -> Result<()> {
+    if let Some(s) = Editor::new(msg_editor).prompt_skippable()? {
+        *field = s;
+    }
+    Ok(())
 }
 
 fn add_euros(price: &f32) -> String {
