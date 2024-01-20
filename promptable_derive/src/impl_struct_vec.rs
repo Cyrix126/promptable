@@ -19,7 +19,7 @@ pub(crate) fn impl_promptable_vec_struct(
                 // least bad solution ?
                 #[derive(promptable::derive_more::Deref, promptable::derive_more::DerefMut, Clone, promptable::derive_more::Display)]
                 #[display(fmt=#name_str)]
-                pub struct #vec_name(Vec<#name>);
+                pub struct #vec_name(pub Vec<#name>);
 
                         impl promptable::Promptable<(#tuple)> for #vec_name {
             fn new_by_prompt(params: (#tuple)) -> promptable::anyhow::Result<Option<#vec_name>> {
