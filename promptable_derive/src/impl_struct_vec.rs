@@ -14,7 +14,14 @@ pub(crate) fn impl_promptable_vec_struct(
     let tuple = &global_params.tuple;
     let params_as_named_value = &global_params.params_as_named_value;
     let vec_name: TokenStream = format!("Vec{name}").parse().unwrap();
-
+    let f_del = if let Some(f) = &global_params.function_del {
+        let func_del: TokenStream = f.parse().unwrap();
+        quote! {
+            #func_del?;
+        }
+    } else {
+        quote! {}
+    };
     quote! {
                 // least bad solution ?
                 #[derive(promptable::derive_more::Deref, promptable::derive_more::DerefMut, Clone, promptable::derive_more::Display)]
@@ -40,7 +47,9 @@ pub(crate) fn impl_promptable_vec_struct(
                         }
                     }
                     promptable::clear_screen();
-                    if let Some(choix) = inquire::Select::new(#msg_mod, options_menu.to_vec()).prompt_skippable()? {
+                    let value_name = #name_str;
+                    println!("{} {}:\n", self.len(), value_name);
+                    if let Some(choix) = promptable::inquire::Select::new(#msg_mod, options_menu.to_vec()).prompt_skippable()? {
                         match choix {
                             promptable::menu::MenuClassic::ADD => self.add_by_prompt_vec(params)?,
                             promptable::menu::MenuClassic::MODIFY => self.modify_by_prompt_vec(params)?,
@@ -81,7 +90,7 @@ pub(crate) fn impl_promptable_vec_struct(
 
                          fn delete_by_prompt_vec(&mut self, params: (#tuple))  -> promptable::anyhow::Result<()> {
                                 promptable::clear_screen();
-            let choix = match inquire::MultiSelect::new(
+            let choix = match promptable::inquire::MultiSelect::new(
                 "Select objects to delete",
                 self.iter().map(|e| <#name as promptable::display::PromptableDisplay>::display_short(e)).collect(),
             )
@@ -96,6 +105,8 @@ pub(crate) fn impl_promptable_vec_struct(
             }
             indexes.sort_unstable_by(|a, b| b.cmp(a));
             for index in indexes {
+                let element = &self[index];
+                    #f_del
                 self.remove(index);
             }
             Ok(())
@@ -104,13 +115,16 @@ pub(crate) fn impl_promptable_vec_struct(
             &mut self,
             params: (#tuple),
         ) -> promptable::anyhow::Result<()> {
-                                promptable::clear_screen();
-            let choix = inquire::Select::new(
+             promptable::clear_screen();
+            let choix = match promptable::inquire::Select::new(
                 "Select object to modify",
                 self.iter().map(|e| <#name as promptable::display::PromptableDisplay>::display_short(e)).collect(),
             )
-            .raw_prompt()?;
-            // self[choix.index].modify_by_prompt(params)?;
+            .raw_prompt() {
+                    Ok(c) => c,
+                    Err(promptable::inquire::error::InquireError::OperationCanceled) => return Ok(()),
+                    Err(e) => Err(e)?
+                };
             <#name as promptable::Promptable<(#tuple)>>::modify_by_prompt(&mut self[choix.index], params)?;
             Ok(())
         }

@@ -1,3 +1,4 @@
+use crate::Date;
 use similar::{ChangeTag, TextDiff};
 use trait_gen::trait_gen;
 /// trait to show a very compact rendering.
@@ -36,17 +37,24 @@ pub trait PromptableDisplay {
 /// generic impl for Vec\<T\> where T implement PromptableDisplay
 impl<T: PromptableDisplay> PromptableDisplay for Vec<T> {
     fn display_short(&self) -> String {
-        self.iter().map(|c| c.display_short()).collect()
+        format!("{} elements.", self.iter().len())
     }
     fn display_human(&self) -> String {
-        self.iter().map(|c| c.display_human()).collect()
+        self.iter()
+            .map(|c| c.display_human())
+            .collect::<Vec<String>>()
+            .join("\n")
     }
 }
 
-#[trait_gen(T -> u8, u16, u32, u64, u128, i8, i32, i64, f32, f64, String)]
+#[trait_gen(T -> u8, u16, u32, u64, u128, i8, i32, i64, i128, f32, f64, String, bool, Date)]
 impl PromptableDisplay for T {
     fn display_short(&self) -> String {
         self.to_string()
+            .lines()
+            .next()
+            .unwrap_or_default()
+            .to_string()
     }
     fn display_human(&self) -> String {
         self.to_string()

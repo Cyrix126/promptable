@@ -33,13 +33,25 @@ use quote::quote;
 pub(crate) fn prepare_value_as_function_param(params: &str) -> Vec<TokenStream> {
     let mut token = Vec::new();
     let params_name = get_from_params(params, true);
-    for (index, name) in params_name.split(',').enumerate() {
+    let split = params_name.split(',');
+    let unit = if split.clone().collect::<Vec<&str>>().len() > 1 {
+        false
+    } else {
+        true
+    };
+    for (index, name) in split.enumerate() {
         if !name.is_empty() {
             let name: proc_macro2::TokenStream = name.parse().unwrap();
             let index = syn::Index::from(index);
-            token.push(quote! {
-                let #name = params.#index;
-            })
+            if unit {
+                token.push(quote! {
+                    let #name = params;
+                })
+            } else {
+                token.push(quote! {
+                    let #name = params.#index;
+                })
+            }
         }
     }
     token

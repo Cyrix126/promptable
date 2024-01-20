@@ -57,6 +57,7 @@ struct StructOpts {
     msg_mod: Option<String>,
     custom_prompt_display: Option<bool>,
     name: Option<String>,
+    function_del: Option<String>,
 }
 
 struct GlobalParams {
@@ -65,6 +66,7 @@ struct GlobalParams {
     name: TokenStream,
     params_as_named_value: Vec<TokenStream>,
     tuple: TokenStream,
+    function_del: Option<String>, // can acess element on deletion of element in vec.
 }
 
 fn opts2global(ast: &syn::DeriveInput) -> GlobalParams {
@@ -87,6 +89,7 @@ fn opts2global(ast: &syn::DeriveInput) -> GlobalParams {
         name,
         params_as_named_value,
         tuple,
+        function_del: attrs_struct.function_del,
     }
 }
 
@@ -273,17 +276,18 @@ fn prepare_value(opts: &FieldParams) -> proc_macro2::TokenStream {
         quote! {
         let value =
         if let Some(v) = &self.#name_field {
-            v.to_string()
+            format!("{}", v)
         } else {
             String::from("None")
         };
         }
     } else {
         quote! {
-            let value = &self.#name_field;
+            let value = promptable::display::PromptableDisplay::display_short(&self.#name_field);
         }
     }
 }
+
 fn generate_value_from_field(opts: &FieldParams, new_or_add: bool) -> proc_macro2::TokenStream {
     let msg = &opts.msg;
     let ty = opts.ty;

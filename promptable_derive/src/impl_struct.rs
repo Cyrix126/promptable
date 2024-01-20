@@ -39,7 +39,7 @@ pub(crate) fn impl_promptable_struct(
         options.push(promptable::menu::MenuClassic::CANCEL.to_string());
         options.push(promptable::menu::MenuClassic::CONFIRM.to_string());
 
-                         if let Some(choix) = inquire::Select::new(#msg_mod, options.clone()).with_starting_cursor(last_choice).prompt_skippable()? {
+                         if let Some(choix) = promptable::inquire::Select::new(#msg_mod, options.clone()).with_starting_cursor(last_choice).prompt_skippable()? {
                          #( #choix_action)*
                          } else {
                              break
