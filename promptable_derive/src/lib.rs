@@ -54,14 +54,12 @@ struct FieldParams<'a> {
 #[darling(attributes(prompt))]
 struct StructOpts {
     params: Option<String>,
-    msg_mod: Option<String>,
     custom_prompt_display: Option<bool>,
     name: Option<String>,
     function_del: Option<String>,
 }
 
 struct GlobalParams {
-    msg_mod: String,
     custom_prompt_display: bool,
     name: TokenStream,
     params_as_named_value: Vec<TokenStream>,
@@ -77,14 +75,10 @@ fn opts2global(ast: &syn::DeriveInput) -> GlobalParams {
         .unwrap_or_else(|| ast.ident.to_string())
         .parse()
         .unwrap();
-    let msg_mod = attrs_struct
-        .msg_mod
-        .unwrap_or(String::from("Select the field to modify"));
     let params = &attrs_struct.params.unwrap_or_default();
     let tuple: TokenStream = get_from_params(params, false).parse().unwrap();
     let params_as_named_value = prepare_value_as_function_param(params);
     GlobalParams {
-        msg_mod,
         custom_prompt_display,
         name,
         params_as_named_value,
@@ -164,7 +158,7 @@ fn impl_promptable(ast: &syn::DeriveInput) -> proc_macro::TokenStream {
     let mut fields_multiple_add = vec![];
 
     let mut fields_display_short_precise = vec![];
-    let mut fields_display_short = vec![];
+    let mut fields_display_short = None;
     let mut fields_display_human = vec![];
     for (nb, (ident, ty, attrs)) in fields(&ast.data).into_iter().enumerate() {
         let opts: FieldOpts = FieldOpts::from_attributes(attrs).expect("Wrong options");
@@ -308,11 +302,11 @@ fn generate_value_from_field(opts: &FieldParams, new_or_add: bool) -> proc_macro
         let func: TokenStream = f.parse().unwrap();
         if is_option(ty) {
             return quote! {
-                #func?
+                #func
             };
         } else {
             return quote! {
-                if let Some(v) = #func? {
+                if let Some(v) = #func {
                     v
                 } else {
                     #cancel_value
@@ -333,7 +327,11 @@ fn generate_value_from_field(opts: &FieldParams, new_or_add: bool) -> proc_macro
         }
     } else if opts.visible && !is_option(ty) {
         quote! {
-        if let Some(prompt) = <#ty as promptable::Promptable<&str>>::new_by_prompt(#msg)?
+        if let Some(prompt) =  {
+                promptable::clear_screen();
+                println!("Escape to cancel");
+             <#ty as promptable::Promptable<&str>>::new_by_prompt(#msg)?
+            }
          {
         prompt
             } else {
@@ -344,7 +342,11 @@ fn generate_value_from_field(opts: &FieldParams, new_or_add: bool) -> proc_macro
         let inner = option_type(ty).expect("could not find inner type of Option");
         // transfer the Option<T> directly
         quote! {
+            {
+                promptable::clear_screen();
+                println!("Escape to put an empty value");
                 <#inner as promptable::Promptable<&str>>::new_by_prompt(#msg)?
+            }
         }
     } else if !opts.visible && is_option(ty) {
         quote! {

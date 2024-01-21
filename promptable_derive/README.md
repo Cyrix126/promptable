@@ -1,5 +1,10 @@
 # README
 
+
+## WIP
+
+Use only if you want to help making this library. I do not advise to use it for release products.
+
 the crate promptable_derive bring the declarative macro.
 
 ## Features:

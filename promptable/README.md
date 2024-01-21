@@ -1,6 +1,15 @@
 # README
 
-**promptable** is a library bringing the trait [Promptable](Promptable) and implementations for basic types.
+## WIP
+
+This is a **work in progress**, but you are welcome to help me think and construct this library.  
+I advise to not use this library in end products until first stable version has been released !  
+
+## Promptable
+
+Library to make structs prompt-able.
+
+**promptable** is a library bringing the trait [Promptable](promptable_derive/README.md) and implementations for basic types.
 
 This library use [inquire-time](https://github.com/Cyrix126/inquire-time), a fork of inquire using the [time](https://docs.rs/time/latest/time) crate instead of chrono for the *date* feature of inquire.
 
@@ -44,3 +53,7 @@ You can run them with:
 ```bash,ignore
 cargo run --example name_example
 ```
+
+### Limitation / ISSUE
+
+The concept of this library has some limitation that are described here [ISSUES](ISSUE.md)

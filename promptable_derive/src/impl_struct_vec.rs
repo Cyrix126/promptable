@@ -10,14 +10,13 @@ pub(crate) fn impl_promptable_vec_struct(
 ) -> TokenStream {
     let name = &global_params.name;
     let name_str = &global_params.name.to_string();
-    let msg_mod = &global_params.msg_mod;
     let tuple = &global_params.tuple;
     let params_as_named_value = &global_params.params_as_named_value;
     let vec_name: TokenStream = format!("Vec{name}").parse().unwrap();
     let f_del = if let Some(f) = &global_params.function_del {
         let func_del: TokenStream = f.parse().unwrap();
         quote! {
-            #func_del?;
+            #func_del;
         }
     } else {
         quote! {}
@@ -48,8 +47,8 @@ pub(crate) fn impl_promptable_vec_struct(
                     }
                     promptable::clear_screen();
                     let value_name = #name_str;
-                    println!("{} {}:\n", self.len(), value_name);
-                    if let Some(choix) = promptable::inquire::Select::new(#msg_mod, options_menu.to_vec()).prompt_skippable()? {
+                    let msg_menu = format!("{} {}:", self.len(), value_name);
+                    if let Some(choix) = promptable::inquire::Select::new(&msg_menu, options_menu.to_vec()).prompt_skippable()? {
                         match choix {
                             promptable::menu::MenuClassic::ADD => self.add_by_prompt_vec(params)?,
                             promptable::menu::MenuClassic::MODIFY => self.modify_by_prompt_vec(params)?,
@@ -147,11 +146,11 @@ pub(crate) fn generate_line_add_by_prompt(
         let f: TokenStream = f.parse().unwrap();
         if is_option(opts.ty) {
             quote! {
-                #ident: #f?
+                #ident: #f
             }
         } else {
             quote! {
-             #ident: if let Some(v) = #f? {
+             #ident: if let Some(v) = #f {
                           v
                     } else {
                         return Ok(())

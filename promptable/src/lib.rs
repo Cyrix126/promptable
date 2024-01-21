@@ -20,6 +20,7 @@ pub mod display;
 /// module to use classic menu for vec.
 #[cfg(feature = "menu")]
 pub mod menu;
+
 #[doc(hidden)]
 /// function using termion to clear the screen.
 /// Used often in the method of declarative macro.
@@ -178,11 +179,9 @@ impl Promptable<&str> for T {
 /// String can be used with the Text type of inquire
 impl Promptable<&str> for String {
     fn new_by_prompt(msg: &str) -> Result<Option<Self>> {
-        clear_screen();
         Ok(Text::new(msg).prompt_skippable()?)
     }
     fn modify_by_prompt(&mut self, msg: &str) -> Result<()> {
-        clear_screen();
         let prompt = Text::new(msg).with_initial_value(self).prompt_skippable()?;
         if let Some(v) = prompt {
             *self = v;
@@ -194,11 +193,9 @@ impl Promptable<&str> for String {
 /// bool can be used with the Confirm type of inquire
 impl Promptable<&str> for bool {
     fn new_by_prompt(msg: &str) -> Result<Option<Self>> {
-        clear_screen();
         Ok(Confirm::new(msg).prompt_skippable()?)
     }
     fn modify_by_prompt(&mut self, msg: &str) -> Result<()> {
-        clear_screen();
         let prompt = Confirm::new(msg).with_default(*self).prompt_skippable()?;
         if let Some(v) = prompt {
             *self = v;

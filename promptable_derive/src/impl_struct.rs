@@ -11,18 +11,14 @@ pub(crate) fn impl_promptable_struct(
     let tuple = &global_params.tuple;
     let name = &global_params.name;
     let params_as_named_value = &global_params.params_as_named_value;
-    let msg_mod = &global_params.msg_mod;
+    // let msg_mod = &global_params.msg_mod;
+    let msg_mod = format!("Modification of {}", name.to_string());
+    let msg_mod_pretty = format!("{}\n{:-<2$}", msg_mod, "-", (msg_mod.len() + 2));
     quote! {
                 impl promptable::Promptable<(#tuple)> for #name {
                     fn new_by_prompt(params: (#tuple)) -> promptable::anyhow::Result<Option<#name>> {
                         promptable::clear_screen();
                         #( #params_as_named_value )*
-                    // old version: will ask until there is a value
-                    // new version: if a needed value is canceld, return none.
-                    // in this new version, function must return Result<Option<value>>
-                    // if let Some will not be used for Option<T> value but the return value will be passed directly
-
-                    //
                      return Ok(Some(#name {
                         #( #field_values_new ),*
                         }))
@@ -39,7 +35,7 @@ pub(crate) fn impl_promptable_struct(
         options.push(promptable::menu::MenuClassic::CANCEL.to_string());
         options.push(promptable::menu::MenuClassic::CONFIRM.to_string());
 
-                         if let Some(choix) = promptable::inquire::Select::new(#msg_mod, options.clone()).with_starting_cursor(last_choice).prompt_skippable()? {
+                         if let Some(choix) = promptable::inquire::Select::new(#msg_mod_pretty, options.clone()).with_starting_cursor(last_choice).prompt_skippable()? {
                          #( #choix_action)*
                          } else {
                              break
@@ -94,7 +90,8 @@ pub(crate) fn prepare_value_from_field_modify(
                 if choix == options[#nb_choice] {
                     last_choice = #nb_choice;
                     let field = &mut self.#ident;
-                    #function_mod?;
+                        promptable::clear_screen();
+                    #function_mod;
                 }
             });
         } else if is_option(opts.ty) {
@@ -108,6 +105,7 @@ pub(crate) fn prepare_value_from_field_modify(
                     // the modify prompt will always put Some(v) or do nothing.
                     // if the value is the same, do not change self.#ident.
                     // This way, it will preserve the None if there was one before the modify_by_prompt method.
+                        promptable::clear_screen();
                     <#inner as promptable::Promptable<&str>>::modify_by_prompt(&mut inner_value, #msg)?;
                     if inner_value != inner_value_origin {
                         self.#ident = Some(inner_value)
@@ -120,6 +118,7 @@ pub(crate) fn prepare_value_from_field_modify(
             choix_action.push(quote! {
                 if choix == options[#nb_choice] {
                     last_choice = #nb_choice;
+                        promptable::clear_screen();
                     <#ty as promptable::Promptable<&str>>::modify_by_prompt(&mut self.#ident, #msg)?
                 }
             });

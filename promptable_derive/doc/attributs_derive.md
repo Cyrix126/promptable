@@ -52,12 +52,24 @@ What name to be displayed on various prompt.
 
 Message to transfer to user while interacting with the prompt. This message can be overriden by a function_new or function_modify attribut.
 
+- ##### `#[promptable(multiple_once = String)]`
+
+Precise if this field should be asked only once when creating a vec of this struct.
+
+
+### Functions attributs
+
+Specific functions with any parameters can be used instead of calling the methods of the trait Promptable.
+
+Every functions declared must return Option\<T\>.
+If you want to propagate the error of the function, use Result\<Option\<T\> with the ? operator in the declaration attribut.
+
+
 - ##### `#[promptable(function_new = String)]`
 
 Calls the function described as String instead of promptable::Promptable::new_by_prompt() for this field while creating an instance of this struct.
 
-Your function needs to return Result\<Option\<T\>\>.
-The error will be propagated.
+Your function needs to return <Option\<T\>.
 If the field is an Option\<T\>, the Some\(T\) or None will be passed to it.
 If the field is a T, if return is Some\(T\), T will be passed.
 If returned is None, the prompt will be canceled Ok(None).
@@ -67,7 +79,6 @@ If returned is None, the prompt will be canceled Ok(None).
 Calls the function described as String instead of promptable::Promptable::modify_by_prompt() for this field while modifying an instance of this struct.
 This function **SHOULD** take "field" as parameter (field: &mut T) (except if you do not want this function to modify your field).
 This parameter is a mutable borrowed of the value of the field.
-This function must return Result\<()\>
 
 - ##### `#[promptable(function_add = String)]`
 
@@ -75,7 +86,6 @@ Calls the function described as String instead of promptable::Promptable::new_by
 
 This is different from function_new. For example function_add can implement some differences when creating a new element using already existing elements of the vec.
 This function can take immutable borrow self as parameter, to access the values in the entire vec.
-This function must return Result\<Option\<T\>\>.
 
 - ##### `#[promptable(function_render = String)]`
 
@@ -84,8 +94,4 @@ field_value mut be used as a parameter. Do not add it in the "prompt" attribut b
 This function must return a type which implement the trait Display or you will get an error from the expanded macro.
 
 You can see an example in "complex_form".
-
-- ##### `#[promptable(multiple_once = String)]`
-
-Precise if this field should be asked only once when creating a vec of this struct.
 
