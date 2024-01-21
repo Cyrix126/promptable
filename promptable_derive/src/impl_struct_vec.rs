@@ -64,6 +64,10 @@ pub(crate) fn impl_promptable_vec_struct(
                                 }
                             }
                         }
+                    } else {
+                             if promptable::menu::menu_cancel(&restore_self, self)? {
+                              break;
+                             }
                     }
                 }
                 Ok(())
