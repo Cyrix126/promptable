@@ -47,6 +47,18 @@ impl<T: PromptableDisplay> PromptableDisplay for Vec<T> {
     }
 }
 
+impl<T> PromptableDisplay for Option<T>
+where
+    T: PromptableDisplay,
+{
+    fn display_short(&self) -> String {
+        String::from("None")
+    }
+    fn display_human(&self) -> String {
+        self.display_short()
+    }
+}
+
 #[trait_gen(T -> u8, u16, u32, u64, u128, i8, i32, i64, i128, f32, f64, String, bool, Date)]
 impl PromptableDisplay for T {
     fn display_short(&self) -> String {

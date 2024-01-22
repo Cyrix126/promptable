@@ -1,3 +1,4 @@
+use proc_macro2::Ident;
 use proc_macro2::TokenStream;
 use quote::quote;
 
@@ -7,6 +8,7 @@ pub(crate) fn impl_promptable_struct(
     fields_options: Vec<TokenStream>,
     choix_action: Vec<TokenStream>,
     global_params: &GlobalParams,
+    idents_visible: &Vec<(&Ident, bool)>,
 ) -> proc_macro2::TokenStream {
     let tuple = &global_params.tuple;
     let name = &global_params.name;
@@ -14,6 +16,8 @@ pub(crate) fn impl_promptable_struct(
     // let msg_mod = &global_params.msg_mod;
     let msg_mod = format!("Modification of {}", name.to_string());
     let msg_mod_pretty = format!("{}\n{:-<2$}", msg_mod, "-", (msg_mod.len() + 2));
+
+    let method_inspect = generate_method_inspect(&fields_options, idents_visible);
     quote! {
                 impl promptable::Promptable<(#tuple)> for #name {
                     fn new_by_prompt(params: (#tuple)) -> promptable::anyhow::Result<Option<#name>> {
@@ -43,7 +47,7 @@ pub(crate) fn impl_promptable_struct(
                          }
                 Ok(())
                      }
-
+        #method_inspect
     }
     }
 }
@@ -123,5 +127,64 @@ pub(crate) fn prepare_value_from_field_modify(
                 }
             });
         }
+    }
+}
+
+fn generate_method_inspect(
+    fields_options: &Vec<TokenStream>,
+    idents_visible: &Vec<(&Ident, bool)>,
+) -> TokenStream {
+    let mut lines_match_ident = Vec::new();
+
+    for (n, (ident, option)) in idents_visible.iter().enumerate() {
+        let field: TokenStream = ident.to_string().parse().unwrap();
+        lines_match_ident.push(if *option {
+            quote! {
+                #n => {if let Some(v) = &self.#field {
+                    v.inspect()?;
+                } else {
+                        continue
+                    }
+
+                }
+            }
+        } else {
+            quote! {
+                #n => promptable::Promptable::inspect(&self.#field)?
+            }
+        });
+    }
+
+    if cfg!(feature = "inspect") {
+        quote! {
+                fn inspect(&self) -> promptable::anyhow::Result<()> {
+
+        // for structs, inspect must put human_description
+        // add a menu to select any fields visible
+        // the selected field will have his method inspect called.
+                        let mut options = Vec::new();
+                        // name of field
+                            #( #fields_options)*
+                        options.push("Go back".to_string());
+                        loop {
+                            promptable::clear_screen();
+                            println!("{}", promptable::display::PromptableDisplay::display_human(self));
+                            match inquire::Select::new("Select the field to view", options.clone()).raw_prompt() {
+                    Ok(l) => {
+                            match l.index {
+                                #(#lines_match_ident),*,
+                                _=> break
+                            }
+                        },
+                    Err(inquire::InquireError::OperationCanceled) => break,
+                    Err(e) => return Err(e.into()),
+                            }
+                        }
+                        promptable::clear_screen();
+                        Ok(())
+                    }
+                }
+    } else {
+        quote! {}
     }
 }

@@ -160,10 +160,15 @@ fn impl_promptable(ast: &syn::DeriveInput) -> proc_macro::TokenStream {
     let mut fields_display_short_precise = vec![];
     let mut fields_display_short = None;
     let mut fields_display_human = vec![];
+
+    let mut idents_visible = vec![];
+
     for (nb, (ident, ty, attrs)) in fields(&ast.data).into_iter().enumerate() {
         let opts: FieldOpts = FieldOpts::from_attributes(attrs).expect("Wrong options");
         let field_params = get_opts_field(nb, &opts, ident, ty);
-
+        if field_params.visible {
+            idents_visible.push((ident, is_option(ty)))
+        }
         if !global_params.custom_prompt_display {
             field_display_short_get(
                 &mut fields_display_short_precise,
@@ -203,6 +208,7 @@ fn impl_promptable(ast: &syn::DeriveInput) -> proc_macro::TokenStream {
         fields_options,
         choix_action,
         &global_params,
+        &idents_visible,
     );
     let impl_prompt_vec_struct = impl_promptable_vec_struct(fields_multiple_add, &global_params);
 
