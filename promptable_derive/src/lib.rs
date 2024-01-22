@@ -1,6 +1,5 @@
 #![warn(missing_docs)]
 #![doc = include_str!("../README.md")]
-
 use core::panic;
 use darling::FromAttributes;
 use display::{
@@ -143,6 +142,20 @@ fn get_opts_field<'a>(
     }
 }
 
+fn has_trait(ty: &Type, trait_to_support: &str) -> bool {
+    match *ty {
+        Type::Path(ref p) => {
+            let last_segment = p.path.segments.last().ok_or(()).unwrap();
+            if last_segment.ident == trait_to_support {
+                return true;
+            } else {
+                false
+            }
+        }
+        _ => return false,
+    }
+}
+
 fn impl_promptable(ast: &syn::DeriveInput) -> proc_macro::TokenStream {
     let global_params = opts2global(ast);
 
@@ -166,7 +179,8 @@ fn impl_promptable(ast: &syn::DeriveInput) -> proc_macro::TokenStream {
     for (nb, (ident, ty, attrs)) in fields(&ast.data).into_iter().enumerate() {
         let opts: FieldOpts = FieldOpts::from_attributes(attrs).expect("Wrong options");
         let field_params = get_opts_field(nb, &opts, ident, ty);
-        if field_params.visible {
+
+        if field_params.visible && has_trait(ty, "Promptable") {
             idents_visible.push((ident, is_option(ty)))
         }
         if !global_params.custom_prompt_display {
@@ -276,7 +290,7 @@ fn prepare_value(opts: &FieldParams) -> proc_macro2::TokenStream {
         quote! {
         let value =
         if let Some(v) = &self.#name_field {
-            format!("{}", v)
+            format!("{}", promptable::display::PromptableDisplay::display_short(v))
         } else {
             String::from("None")
         };

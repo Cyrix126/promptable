@@ -1,7 +1,8 @@
 use anyhow::Result;
-use inquire::{Editor, Select};
-use promptable::{Date, Promptable};
+use inquire::{Editor, Select, Text};
+use promptable::{display::PromptableDisplay, Date, Promptable};
 use promptable_derive::Promptable;
+
 #[derive(Promptable, Clone)]
 #[prompt(params = "msg_search: &str, msg_editor: &str, clients: &[String]")]
 pub struct Prestation {
@@ -30,6 +31,37 @@ pub struct Prestation {
     #[promptable(visible = false)]
     // will be skipped, can't edit by prompt, will use default value, None if Option.
     field_not_promptable: i128,
+    #[promptable(function_new = "new_adr()?")]
+    #[promptable(function_mod = "mod_adr(field)?")]
+    adr: Option<Adr>,
+}
+
+// This struct doesn't have deref, neither Display or Promptable, but it works because it implements Promptable Display and give custom function for new and modify methods.
+#[derive(Clone)]
+pub struct Adr(String);
+
+fn new_adr() -> Result<Option<Adr>> {
+    if let Some(adr) = Text::new("Adresse").prompt_skippable()? {
+        Ok(Some(Adr(adr)))
+    } else {
+        Ok(None)
+    }
+}
+fn mod_adr(adresse: &mut Option<Adr>) -> Result<()> {
+    if let Some(adr) = Text::new("Adresse").prompt_skippable()? {
+        *adresse = Some(Adr(adr))
+    } else {
+        *adresse = None
+    }
+    Ok(())
+}
+impl PromptableDisplay for Adr {
+    fn display_short(&self) -> String {
+        self.0.clone()
+    }
+    fn display_human(&self) -> String {
+        self.display_short()
+    }
 }
 
 fn increment(p: &Prestation) -> Option<u32> {

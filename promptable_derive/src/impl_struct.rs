@@ -137,10 +137,9 @@ fn generate_method_inspect(
     let mut lines_match_ident = Vec::new();
 
     for (n, (ident, option)) in idents_visible.iter().enumerate() {
-        let field: TokenStream = ident.to_string().parse().unwrap();
         lines_match_ident.push(if *option {
             quote! {
-                #n => {if let Some(v) = &self.#field {
+                #n => {if let Some(v) = &self.#ident {
                     v.inspect()?;
                 } else {
                         continue
@@ -150,12 +149,12 @@ fn generate_method_inspect(
             }
         } else {
             quote! {
-                #n => promptable::Promptable::inspect(&self.#field)?
+                #n => promptable::Promptable::inspect(&self.#ident)?
             }
         });
     }
 
-    if cfg!(feature = "inspect") {
+    if cfg!(feature = "inspect") && !lines_match_ident.is_empty() {
         quote! {
                 fn inspect(&self) -> promptable::anyhow::Result<()> {
 
