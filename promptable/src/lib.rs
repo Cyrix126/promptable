@@ -51,6 +51,21 @@ pub trait Promptable<P> {
     /// modify the self value.
     /// Will return a result, Ok(()) if everything went fine or canceled, Err(()) for otherwise.
     fn modify_by_prompt(&mut self, params: P) -> Result<()>;
+
+    #[cfg(feature = "inspect")]
+    /// method to show the Promptable element, until viewer press Enter or Escape.
+    /// An implementation is made for Vec<T> where the viewer can choose which element to see.
+    /// The vec implementation is automaticly implemented for VecStruct with derive macro. An implementation also exist for Vec of basic types.
+    fn inspect(&self) -> Result<()>
+    where
+        Self: PromptableDisplay,
+    {
+        println!("{}", self.display_human());
+        Select::new("", vec![""])
+            .with_help_message("Press Enter or Escape to quit the view.")
+            .prompt_skippable()?;
+        Ok(())
+    }
 }
 
 /// generic default implementation for Vec\<T\>
@@ -99,6 +114,31 @@ where
         }
         Ok(())
     }
+    #[cfg(feature = "inspect")]
+
+    fn inspect(&self) -> Result<()> {
+        use inquire::InquireError;
+
+        let options = self
+            .iter()
+            .map(|e| e.display_short())
+            .collect::<Vec<String>>();
+        loop {
+            clear_screen();
+            match Select::new(
+                "Choose the element to see.\nEscape to view",
+                options.clone(),
+            )
+            .raw_prompt()
+            {
+                Ok(l) => self[l.index].inspect()?,
+                Err(InquireError::OperationCanceled) => break,
+                Err(e) => return Err(e.into()),
+            }
+        }
+        clear_screen();
+        Ok(())
+    }
 }
 fn add_by_prompt_vec<T: for<'a> Promptable<&'a str>>(
     vec: &mut Vec<T>,
@@ -136,7 +176,7 @@ fn delete_by_prompt_vec<T: for<'a> Promptable<&'a str> + Clone + PromptableDispl
 }
 
 fn modify_by_prompt_vec<T: for<'a> Promptable<&'a str> + Clone + PromptableDisplay>(
-    vec: &mut Vec<T>,
+    vec: &mut [T],
     msg: &str,
 ) -> anyhow::Result<()> {
     clear_screen();

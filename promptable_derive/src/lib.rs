@@ -329,7 +329,6 @@ fn generate_value_from_field(opts: &FieldParams, new_or_add: bool) -> proc_macro
         quote! {
         if let Some(prompt) =  {
                 promptable::clear_screen();
-                println!("Escape to cancel");
              <#ty as promptable::Promptable<&str>>::new_by_prompt(#msg)?
             }
          {

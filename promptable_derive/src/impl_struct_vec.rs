@@ -30,6 +30,7 @@ pub(crate) fn impl_promptable_vec_struct(
                         impl promptable::Promptable<(#tuple)> for #vec_name {
             fn new_by_prompt(params: (#tuple)) -> promptable::anyhow::Result<Option<#vec_name>> {
                 if let Some(r) = #name::new_by_prompt(params)? {
+                    promptable::clear_screen();
                  Ok(Some(#vec_name(vec![r])))
                 } else {
                  Ok(None)
@@ -70,8 +71,26 @@ pub(crate) fn impl_promptable_vec_struct(
                              }
                     }
                 }
+                    promptable::clear_screen();
                 Ok(())
             }
+    #[cfg(feature = "inspect")]
+    fn inspect(&self) -> Result<()> {
+        let options = self
+            .iter()
+            .map(|e| promptable::display::PromptableDisplay::display_short(e))
+            .collect::<Vec<String>>();
+        loop {
+        promptable::clear_screen();
+            match inquire::Select::new("Choose the element to see.\nEscape to quit the view", options.clone()).raw_prompt() {
+                Ok(l) => self[l.index].inspect()?,
+                Err(inquire::InquireError::OperationCanceled) => break,
+                Err(e) => return Err(e.into()),
+            }
+        }
+        promptable::clear_screen();
+        Ok(())
+    }
 
                 }
 
@@ -92,7 +111,6 @@ pub(crate) fn impl_promptable_vec_struct(
                         }
 
                          fn delete_by_prompt_vec(&mut self, params: (#tuple))  -> promptable::anyhow::Result<()> {
-                                promptable::clear_screen();
             let choix = match promptable::inquire::MultiSelect::new(
                 "Select objects to delete",
                 self.iter().map(|e| <#name as promptable::display::PromptableDisplay>::display_short(e)).collect(),
@@ -112,6 +130,7 @@ pub(crate) fn impl_promptable_vec_struct(
                     #f_del
                 self.remove(index);
             }
+            promptable::clear_screen();
             Ok(())
                         }
         fn modify_by_prompt_vec(

@@ -70,5 +70,7 @@ fn main() -> Result<()> {
         prestations.push(c);
     }
     prestations.modify_by_prompt(("New prestation", "Description", &clients))?;
+
+    prestations.inspect()?;
     Ok(())
 }

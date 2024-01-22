@@ -11,6 +11,8 @@ The dev user using the declarative macro could get errors if for example a field
 
 cargo expand can be used to see the result of the macro.
 
+See how derive_more arrives to get debugging with strings.
+
 
 ## No analyze of code from LSP server on strings
 
