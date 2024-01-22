@@ -21,6 +21,31 @@ pub(crate) fn impl_promptable_vec_struct(
     } else {
         quote! {}
     };
+
+    let inspect_method = if cfg!(feature = "inspect") {
+        quote! {
+        fn inspect(&self) -> Result<()> {
+            let options = self
+                .iter()
+                .map(|e| promptable::display::PromptableDisplay::display_short(e))
+                .collect::<Vec<String>>();
+            loop {
+            promptable::clear_screen();
+                    dbg!(&options);
+                match inquire::Select::new("Choose the element to see.\nEscape to quit the view", options.clone()).raw_prompt() {
+                    Ok(l) => self[l.index].inspect()?,
+                    Err(inquire::InquireError::OperationCanceled) => break,
+                    Err(e) => return Err(e.into()),
+                }
+            }
+            promptable::clear_screen();
+            Ok(())
+        }
+            }
+    } else {
+        quote! {}
+    };
+
     quote! {
                 // least bad solution ?
                 #[derive(promptable::derive_more::Deref, promptable::derive_more::DerefMut, Clone, promptable::derive_more::Display)]
@@ -74,24 +99,7 @@ pub(crate) fn impl_promptable_vec_struct(
                     promptable::clear_screen();
                 Ok(())
             }
-    #[cfg(feature = "inspect")]
-    fn inspect(&self) -> Result<()> {
-        let options = self
-            .iter()
-            .map(|e| promptable::display::PromptableDisplay::display_short(e))
-            .collect::<Vec<String>>();
-        loop {
-        promptable::clear_screen();
-            match inquire::Select::new("Choose the element to see.\nEscape to quit the view", options.clone()).raw_prompt() {
-                Ok(l) => self[l.index].inspect()?,
-                Err(inquire::InquireError::OperationCanceled) => break,
-                Err(e) => return Err(e.into()),
-            }
-        }
-        promptable::clear_screen();
-        Ok(())
-    }
-
+                #inspect_method
                 }
 
     impl #vec_name {

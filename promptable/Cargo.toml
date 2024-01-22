@@ -1,6 +1,6 @@
 [package]
 name = "promptable"
-version = "0.6.1"
+version = "0.6.2"
 edition = "2021"
 description = "macro derive for promptable"
 publish = false # TODO need to merge inquire-time into upstream or publish it
@@ -23,6 +23,6 @@ trait-gen = "0"
 default = ["inquire/editor", "time", "promptable_derive", "termion", "menu", "inspect"]
 menu = ["display"]
 display = ["similar"]
-inspect = []
+inspect = ["promptable_derive/inspect"]
 [package.metadata.docs.rs]
 cargo-args = ["-Zunstable-options", "-Zrustdoc-scrape-examples"]
