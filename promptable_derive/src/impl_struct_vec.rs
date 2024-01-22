@@ -24,7 +24,7 @@ pub(crate) fn impl_promptable_vec_struct(
 
     let inspect_method = if cfg!(feature = "inspect") {
         quote! {
-        fn inspect(&self) -> Result<()> {
+        fn inspect(&self) -> promptable::anyhow::Result<()> {
             let options = self
                 .iter()
                 .map(|e| promptable::display::PromptableDisplay::display_short(e))
