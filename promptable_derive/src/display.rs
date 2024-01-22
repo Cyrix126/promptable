@@ -13,7 +13,6 @@ pub(crate) fn field_display_short_get(
     opts: &FieldParams,
 ) {
     if !fields_precise.is_empty() && !opts.short_display {
-        return;
     } else {
         let line;
         let ident = opts.ident;

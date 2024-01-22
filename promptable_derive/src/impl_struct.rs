@@ -14,7 +14,7 @@ pub(crate) fn impl_promptable_struct(
     let name = &global_params.name;
     let params_as_named_value = &global_params.params_as_named_value;
     // let msg_mod = &global_params.msg_mod;
-    let msg_mod = format!("Modification of {}", name.to_string());
+    let msg_mod = format!("Modification of {}", name);
     let msg_mod_pretty = format!("{}\n{:-<2$}", msg_mod, "-", (msg_mod.len() + 2));
 
     let method_inspect = generate_method_inspect(&fields_options, idents_visible);
