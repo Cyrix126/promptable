@@ -8,7 +8,7 @@ pub(crate) fn impl_promptable_struct(
     fields_options: Vec<TokenStream>,
     choix_action: Vec<TokenStream>,
     global_params: &GlobalParams,
-    idents_visible: &Vec<(&Ident, bool)>,
+    idents_visible: &[(&Ident, bool)],
 ) -> proc_macro2::TokenStream {
     let tuple = &global_params.tuple;
     let name = &global_params.name;
@@ -132,7 +132,7 @@ pub(crate) fn prepare_value_from_field_modify(
 
 fn generate_method_inspect(
     fields_options: &Vec<TokenStream>,
-    idents_visible: &Vec<(&Ident, bool)>,
+    idents_visible: &[(&Ident, bool)],
 ) -> TokenStream {
     let mut lines_match_ident = Vec::new();
 

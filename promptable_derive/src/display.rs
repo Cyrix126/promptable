@@ -14,21 +14,20 @@ pub(crate) fn field_display_short_get(
 ) {
     if !fields_precise.is_empty() && !opts.short_display {
     } else {
-        let line;
         let ident = opts.ident;
-        if is_option(opts.ty) {
-            line = quote! {
+        let line = if is_option(opts.ty) {
+            quote! {
                 if let Some(v) = &self.#ident {
                 str.push(format!("{}", v));
                 } else {
                 str.push(format!("None"));
                 }
-            };
+            }
         } else {
-            line = quote! {
+            quote! {
             str.push(format!("{}", self.#ident));
             }
-        }
+        };
 
         if opts.short_display {
             fields_precise.push(line)
