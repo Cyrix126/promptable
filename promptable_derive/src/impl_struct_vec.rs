@@ -31,7 +31,6 @@ pub(crate) fn impl_promptable_vec_struct(
                 .collect::<Vec<String>>();
             loop {
             promptable::clear_screen();
-                    dbg!(&options);
                 match inquire::Select::new("Choose the element to see.\nEscape to quit the view", options.clone()).raw_prompt() {
                     Ok(l) => self[l.index].inspect()?,
                     Err(inquire::InquireError::OperationCanceled) => break,
