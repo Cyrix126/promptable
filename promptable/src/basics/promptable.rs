@@ -10,8 +10,8 @@ use trait_gen::trait_gen;
 ///# Example
 ///```rust,no_run
 ///
-///use promptable::Date;
-///use promptable::Promptable;
+///use promptable::basics::promptable::Date;
+///use promptable::basics::promptable::Promptable;
 ///if let Some(mut anwser) = Date::new_by_prompt("choose the date")? {
 /// anwser.modify_by_prompt("change the date")?;
 ///}

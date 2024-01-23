@@ -19,7 +19,7 @@ pub fn impl_inspectable_struct(
     let vec_name: TokenStream = format!("Vec{name}").parse().unwrap();
     let method_inspect_vec = generate_method_inspect_vec(&path_inspect);
 
-    let method_inspect = generate_method_inspect(&fields_options_inspect, idents_inspect);
+    let method_inspect = generate_method_inspect(fields_options_inspect, idents_inspect);
     quote! {
         impl #path_inspect for #name {
             #method_inspect
