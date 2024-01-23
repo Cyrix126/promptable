@@ -1,8 +1,7 @@
-use std::fmt::Display;
-
-use anyhow::Result;
-use promptable::{Date, Promptable};
+use promptable::basics::promptable::Promptable;
+use promptable::{anyhow::Result, basics::promptable::Date};
 use promptable_derive::Promptable;
+use std::fmt::Display;
 #[derive(Promptable, Clone)]
 pub struct Book {
     #[promptable(multiple_once = true)]

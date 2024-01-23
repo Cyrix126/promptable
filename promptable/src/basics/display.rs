@@ -1,6 +1,12 @@
-use crate::Date;
+use crate::basics::promptable::Date;
 use similar::{ChangeTag, TextDiff};
+use termion::{clear::All, cursor::Goto};
 use trait_gen::trait_gen;
+/// function using termion to clear the screen.
+/// Used often in the method of declarative macro.
+pub fn clear_screen() {
+    println!("{}{}", All, Goto(1, 1));
+}
 /// trait to show a very compact rendering.
 /// a derive macro exist to implement it automaticlly with the 3 first fields.
 /// a derive helper allow to choose the fields, and format them with functions.

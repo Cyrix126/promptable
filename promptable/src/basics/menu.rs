@@ -1,7 +1,7 @@
 use anyhow::Result;
 use inquire::Confirm;
 
-use crate::display::PromptableDisplay;
+use crate::basics::display::PromptableDisplay;
 
 /// Struct Menu Classic will offer consts to make fast menu to manage a Vec.
 pub struct MenuClassic;

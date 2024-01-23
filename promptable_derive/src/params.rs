@@ -37,7 +37,7 @@ pub(crate) fn prepare_value_as_function_param(params: &str) -> Vec<TokenStream> 
     let unit = split.clone().collect::<Vec<&str>>().len() <= 1;
     for (index, name) in split.enumerate() {
         if !name.is_empty() {
-            let name: proc_macro2::TokenStream = name.parse().unwrap();
+            let name: TokenStream = name.parse().unwrap();
             let index = syn::Index::from(index);
             if unit {
                 token.push(quote! {

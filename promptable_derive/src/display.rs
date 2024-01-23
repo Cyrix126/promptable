@@ -2,6 +2,7 @@ use crate::is_option;
 use crate::prepare_value;
 use crate::FieldParams;
 use crate::GlobalParams;
+use crate::PATH_PROMPTABLEDISPLAY_TRAIT;
 use proc_macro2::TokenStream;
 use quote::quote;
 pub(crate) fn option2bool(o: Option<bool>) -> bool {
@@ -37,7 +38,7 @@ pub(crate) fn field_display_short_get(
     }
 }
 
-pub(crate) fn field_display_human_get(opts: &FieldParams) -> proc_macro2::TokenStream {
+pub(crate) fn field_display_human_get(opts: &FieldParams) -> TokenStream {
     let pre_value = prepare_value(opts);
     let field_name = &opts.name;
     quote! {
@@ -59,11 +60,12 @@ pub(crate) fn impl_prompt_display_generate(
         } else {
             fields_short_precise
         };
+        let path_display_trait: TokenStream = PATH_PROMPTABLEDISPLAY_TRAIT.parse().unwrap();
 
         let name = &global_params.name;
         let vec_name: TokenStream = format!("Vec{}", name).parse().unwrap();
         quote! {
-            impl promptable::display::PromptableDisplay for #name {
+            impl #path_display_trait for #name {
                 fn display_short(&self) -> String {
                     let mut str = vec![];
                     #( #short_fields)*
@@ -75,7 +77,7 @@ pub(crate) fn impl_prompt_display_generate(
                     str.join("\n")
                 }
             }
-            impl promptable::display::PromptableDisplay for #vec_name {
+            impl #path_display_trait for #vec_name {
                 fn display_short(&self) -> String {
                     self.0.display_short()
                 }

@@ -1,6 +1,6 @@
 [package]
 name = "promptable_derive"
-version = "0.6.4"
+version = "0.7.0"
 edition = "2021"                           
 description = "macro derive for promptable" 
 publish = false # TODO
@@ -21,4 +21,5 @@ quote = "1"
 darling = "0.20"
 proc-macro2 = "1"
 [features]
-inspect = []
+default=["inspect"]
+inspect=[]

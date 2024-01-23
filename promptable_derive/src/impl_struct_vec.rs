@@ -4,8 +4,15 @@ use quote::quote;
 use crate::is_option;
 use crate::FieldParams;
 use crate::GlobalParams;
+use crate::PATH_ANYHOW_TRAIT;
+use crate::PATH_CLEARSCREEN;
+use crate::PATH_DERIVE_MORE;
+use crate::PATH_INQUIRE;
+use crate::PATH_MENU;
+use crate::PATH_PROMPTABLEDISPLAY_TRAIT;
+use crate::PATH_PROMPTABLE_TRAIT;
 pub(crate) fn impl_promptable_vec_struct(
-    fields_multiple_add: Vec<TokenStream>,
+    fields_multiple_add: &Vec<TokenStream>,
     global_params: &GlobalParams,
 ) -> TokenStream {
     let name = &global_params.name;
@@ -13,6 +20,13 @@ pub(crate) fn impl_promptable_vec_struct(
     let tuple = &global_params.tuple;
     let params_as_named_value = &global_params.params_as_named_value;
     let vec_name: TokenStream = format!("Vec{name}").parse().unwrap();
+    let path_promptable: TokenStream = PATH_PROMPTABLE_TRAIT.parse().unwrap();
+    let path_anyhow: TokenStream = PATH_ANYHOW_TRAIT.parse().unwrap();
+    let clear_screen: TokenStream = PATH_CLEARSCREEN.parse().unwrap();
+    let path_inquire: TokenStream = PATH_INQUIRE.parse().unwrap();
+    let path_menu: TokenStream = PATH_MENU.parse().unwrap();
+    let path_prompt_display: TokenStream = PATH_PROMPTABLEDISPLAY_TRAIT.parse().unwrap();
+    let path_derive_more: TokenStream = PATH_DERIVE_MORE.parse().unwrap();
     let f_del = if let Some(f) = &global_params.function_del {
         let func_del: TokenStream = f.parse().unwrap();
         quote! {
@@ -22,46 +36,23 @@ pub(crate) fn impl_promptable_vec_struct(
         quote! {}
     };
 
-    let inspect_method = if cfg!(feature = "inspect") {
-        quote! {
-        fn inspect(&self) -> promptable::anyhow::Result<()> {
-            let options = self
-                .iter()
-                .map(|e| promptable::display::PromptableDisplay::display_short(e))
-                .collect::<Vec<String>>();
-            loop {
-            promptable::clear_screen();
-                match inquire::Select::new("Choose the element to see.\nEscape to quit the view", options.clone()).raw_prompt() {
-                    Ok(l) => self[l.index].inspect()?,
-                    Err(inquire::InquireError::OperationCanceled) => break,
-                    Err(e) => return Err(e.into()),
-                }
-            }
-            promptable::clear_screen();
-            Ok(())
-        }
-            }
-    } else {
-        quote! {}
-    };
-
     quote! {
                 // least bad solution ?
-                #[derive(promptable::derive_more::Deref, promptable::derive_more::DerefMut, Clone, promptable::derive_more::Display)]
+                #[derive(#path_derive_more::Deref, #path_derive_more::DerefMut, Clone, #path_derive_more::Display)]
                 #[display(fmt=#name_str)]
                 pub struct #vec_name(pub Vec<#name>);
 
-                        impl promptable::Promptable<(#tuple)> for #vec_name {
-            fn new_by_prompt(params: (#tuple)) -> promptable::anyhow::Result<Option<#vec_name>> {
+                        impl #path_promptable<(#tuple)> for #vec_name {
+            fn new_by_prompt(params: (#tuple)) -> #path_anyhow::Result<Option<#vec_name>> {
                 if let Some(r) = #name::new_by_prompt(params)? {
-                    promptable::clear_screen();
+                    #clear_screen;
                  Ok(Some(#vec_name(vec![r])))
                 } else {
                  Ok(None)
                 }
             }
-            fn modify_by_prompt(&mut self, params: (#tuple)) -> promptable::anyhow::Result<()> {
-                let options_menu = promptable::menu::MenuClassic::consts();
+            fn modify_by_prompt(&mut self, params: (#tuple)) -> #path_anyhow::Result<()> {
+                let options_menu = #path_menu::MenuClassic::consts();
                 // idea: rather than cloning the self and chaning a new self or an old self, why not create a vec and only add what changes and then apply on self if confirmed ?
                 let restore_self = self.clone();
                 loop {
@@ -70,43 +61,42 @@ pub(crate) fn impl_promptable_vec_struct(
                             self.push(s);
                         }
                     }
-                    promptable::clear_screen();
+                    #clear_screen;
                     let value_name = #name_str;
                     let msg_menu = format!("{} {}:", self.len(), value_name);
-                    if let Some(choix) = promptable::inquire::Select::new(&msg_menu, options_menu.to_vec()).prompt_skippable()? {
+                    if let Some(choix) = #path_inquire::Select::new(&msg_menu, options_menu.to_vec()).prompt_skippable()? {
                         match choix {
-                            promptable::menu::MenuClassic::ADD => self.add_by_prompt_vec(params)?,
-                            promptable::menu::MenuClassic::MODIFY => self.modify_by_prompt_vec(params)?,
-                            promptable::menu::MenuClassic::DELETE => self.delete_by_prompt_vec(params)?,
-                            promptable::menu::MenuClassic::CANCEL => {
-                             if promptable::menu::menu_cancel(&restore_self, self)? {
+                            #path_menu::MenuClassic::ADD => self.add_by_prompt_vec(params)?,
+                            #path_menu::MenuClassic::MODIFY => self.modify_by_prompt_vec(params)?,
+                            #path_menu::MenuClassic::DELETE => self.delete_by_prompt_vec(params)?,
+                            #path_menu::MenuClassic::CANCEL => {
+                             if #path_menu::menu_cancel(&restore_self, self)? {
                               break;
                              }
                             }
                             _ => {// confirm
-                                if promptable::menu::menu_confirm(&restore_self, &self)? {
+                                if #path_menu::menu_confirm(&restore_self, &self)? {
                                     break;
                                 }
                             }
                         }
                     } else {
-                             if promptable::menu::menu_cancel(&restore_self, self)? {
+                             if #path_menu::menu_cancel(&restore_self, self)? {
                               break;
                              }
                     }
                 }
-                    promptable::clear_screen();
+                    #clear_screen;
                 Ok(())
             }
-                #inspect_method
                 }
 
     impl #vec_name {
-                    fn add_by_prompt_vec(&mut self, params: (#tuple))  -> promptable::anyhow::Result<()>{
+                    fn add_by_prompt_vec(&mut self, params: (#tuple))  -> #path_anyhow::Result<()>{
                     // rename tuple parts with name to use with functions if any
                                 #( #params_as_named_value )*
                             // loop {
-                                promptable::clear_screen();
+                                #clear_screen;
                         // use macro for which fields to ask and how and value to prepare
                 let new = #name {
                     #( #fields_multiple_add ),*
@@ -117,10 +107,10 @@ pub(crate) fn impl_promptable_vec_struct(
                             Ok(())
                         }
 
-                         fn delete_by_prompt_vec(&mut self, params: (#tuple))  -> promptable::anyhow::Result<()> {
-            let choix = match promptable::inquire::MultiSelect::new(
+                         fn delete_by_prompt_vec(&mut self, params: (#tuple))  -> #path_anyhow::Result<()> {
+            let choix = match #path_inquire::MultiSelect::new(
                 "Select objects to delete",
-                self.iter().map(|e| <#name as promptable::display::PromptableDisplay>::display_short(e)).collect(),
+                self.iter().map(|e| <#name as #path_prompt_display>::display_short(e)).collect(),
             )
             .raw_prompt_skippable()?
             {
@@ -137,24 +127,24 @@ pub(crate) fn impl_promptable_vec_struct(
                     #f_del
                 self.remove(index);
             }
-            promptable::clear_screen();
+            #clear_screen;
             Ok(())
                         }
         fn modify_by_prompt_vec(
             &mut self,
             params: (#tuple),
-        ) -> promptable::anyhow::Result<()> {
-             promptable::clear_screen();
-            let choix = match promptable::inquire::Select::new(
+        ) -> #path_anyhow::Result<()> {
+             #clear_screen;
+            let choix = match #path_inquire::Select::new(
                 "Select object to modify",
-                self.iter().map(|e| <#name as promptable::display::PromptableDisplay>::display_short(e)).collect(),
+                self.iter().map(|e| <#name as #path_prompt_display>::display_short(e)).collect(),
             )
             .raw_prompt() {
                     Ok(c) => c,
-                    Err(promptable::inquire::error::InquireError::OperationCanceled) => return Ok(()),
+                    Err(#path_inquire::error::InquireError::OperationCanceled) => return Ok(()),
                     Err(e) => Err(e)?
                 };
-            <#name as promptable::Promptable<(#tuple)>>::modify_by_prompt(&mut self[choix.index], params)?;
+            <#name as #path_promptable<(#tuple)>>::modify_by_prompt(&mut self[choix.index], params)?;
             Ok(())
         }
             }

@@ -1,8 +1,12 @@
 use anyhow::Result;
 use inquire::{Editor, Select, Text};
-use promptable::{display::PromptableDisplay, Date, Promptable};
+use promptable::basics::display;
+use promptable::basics::{
+    display::PromptableDisplay,
+    promptable::{Date, Promptable},
+};
+use promptable::inspect::Inspectable;
 use promptable_derive::Promptable;
-
 #[derive(Promptable, Clone)]
 #[prompt(params = "msg_search: &str, msg_editor: &str, clients: &[String]")]
 pub struct Prestation {
@@ -33,12 +37,14 @@ pub struct Prestation {
     field_not_promptable: i128,
     #[promptable(function_new = "new_adr()?")]
     #[promptable(function_mod = "mod_adr(field)?")]
+    #[promptable(inspect = false)]
     adr: Option<Adr>,
 }
 
-// This struct doesn't have deref, neither Display or Promptable, but it works because it implements Promptable Display and give custom function for new and modify methods.
+// Struct that doesn't implement Promptable
 #[derive(Clone)]
 pub struct Adr(String);
+impl Inspectable for Adr {}
 
 fn new_adr() -> Result<Option<Adr>> {
     if let Some(adr) = Text::new("Adresse").prompt_skippable()? {
@@ -68,7 +74,7 @@ fn increment(p: &Prestation) -> Option<u32> {
     Some(p.id + 1)
 }
 fn search_client(msg_search: &str, clients: &[String]) -> Result<Option<String>> {
-    promptable::clear_screen();
+    display::clear_screen();
     Ok(Select::new(msg_search, clients.to_owned()).prompt_skippable()?)
 }
 fn search_client_mod(field: &mut String, msg_search: &str, clients: &[String]) -> Result<()> {
@@ -79,11 +85,11 @@ fn search_client_mod(field: &mut String, msg_search: &str, clients: &[String]) -
 }
 
 fn editor(msg_editor: &str) -> Result<Option<String>> {
-    promptable::clear_screen();
+    display::clear_screen();
     Ok(Editor::new(msg_editor).prompt_skippable()?)
 }
 fn editor_mod(field: &mut String, msg_editor: &str) -> Result<()> {
-    promptable::clear_screen();
+    display::clear_screen();
     if let Some(s) = Editor::new(msg_editor).prompt_skippable()? {
         *field = s;
     }
@@ -103,6 +109,6 @@ fn main() -> Result<()> {
     }
     prestations.modify_by_prompt(("New prestation", "Description", &clients))?;
 
-    prestations.inspect()?;
+    prestations.inspect_menu()?;
     Ok(())
 }

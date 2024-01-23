@@ -1,5 +1,6 @@
 #![warn(missing_docs)]
 #![doc = include_str!("../README.md")]
+use crate::impl_inspect::impl_inspectable_struct;
 use core::panic;
 use darling::FromAttributes;
 use display::{
@@ -15,10 +16,19 @@ use quote::quote;
 use syn::{self, Attribute, Data, Type};
 
 mod display;
+mod impl_inspect;
 mod impl_struct;
 mod impl_struct_vec;
 mod params;
 
+const PATH_PROMPTABLEDISPLAY_TRAIT: &str = "promptable::basics::display::PromptableDisplay";
+const PATH_PROMPTABLE_TRAIT: &str = "promptable::basics::promptable::Promptable";
+const PATH_ANYHOW_TRAIT: &str = "promptable::anyhow";
+const PATH_CLEARSCREEN: &str = "promptable::basics::display::clear_screen()";
+const PATH_INQUIRE: &str = "promptable::inquire";
+const PATH_INSPECT: &str = "promptable::inspect::Inspectable";
+const PATH_MENU: &str = "promptable::basics::menu";
+const PATH_DERIVE_MORE: &str = "promptable::derive_more";
 #[derive(FromAttributes)]
 #[darling(attributes(promptable))]
 struct FieldOpts {
@@ -26,6 +36,7 @@ struct FieldOpts {
     default: Option<bool>,
     name: Option<String>,
     visible: Option<bool>,
+    inspect: Option<bool>,
     function_render: Option<String>, // field_value mut be in parameter
     msg: Option<String>,
     function_new: Option<String>,
@@ -40,6 +51,7 @@ struct FieldParams<'a> {
     name: String,
     ident: &'a Ident,
     visible: bool,
+    inspect: bool,
     ty: &'a Type,
     function_new: &'a Option<String>,
     function_mod: &'a Option<String>,
@@ -132,6 +144,7 @@ fn get_opts_field<'a>(
         ident,
         ty,
         visible,
+        inspect: opts.inspect.unwrap_or(true),
         function_new: &opts.function_new,
         function_mod: &opts.function_mod,
         function_add: &opts.function_add,
@@ -139,20 +152,6 @@ fn get_opts_field<'a>(
         short_display: opts.short_display.unwrap_or_default(),
         default: opts.default.unwrap_or_default(),
         multiple_once: opts.multiple_once.unwrap_or_default(),
-    }
-}
-
-fn has_trait(ty: &Type, trait_to_support: &str) -> bool {
-    match *ty {
-        Type::Path(ref p) => {
-            let last_segment = p.path.segments.last().ok_or(()).unwrap();
-            if last_segment.ident == trait_to_support {
-                return true;
-            } else {
-                false
-            }
-        }
-        _ => return false,
     }
 }
 
@@ -165,6 +164,7 @@ fn impl_promptable(ast: &syn::DeriveInput) -> proc_macro::TokenStream {
     // génération de modify_by_prompt fields
     // options for prompt
     let mut fields_options = vec![];
+    let mut fields_options_inspect = vec![];
     // match and action
     let mut choix_action = vec![];
 
@@ -174,14 +174,18 @@ fn impl_promptable(ast: &syn::DeriveInput) -> proc_macro::TokenStream {
     let mut fields_display_short = None;
     let mut fields_display_human = vec![];
 
-    let mut idents_visible = vec![];
+    let mut idents_inspect = vec![];
 
     for (nb, (ident, ty, attrs)) in fields(&ast.data).into_iter().enumerate() {
         let opts: FieldOpts = FieldOpts::from_attributes(attrs).expect("Wrong options");
         let field_params = get_opts_field(nb, &opts, ident, ty);
-
-        if field_params.visible && has_trait(ty, "Promptable") {
-            idents_visible.push((ident, is_option(ty)))
+        if field_params.visible && field_params.inspect {
+            prepare_value_from_field_modify(
+                &field_params,
+                &mut fields_options_inspect,
+                &mut vec![],
+            );
+            idents_inspect.push((ident, ty))
         }
         if !global_params.custom_prompt_display {
             field_display_short_get(
@@ -218,19 +222,25 @@ fn impl_promptable(ast: &syn::DeriveInput) -> proc_macro::TokenStream {
         &global_params,
     );
     let impl_prompt_struct = impl_promptable_struct(
-        field_values_new,
-        fields_options,
-        choix_action,
+        &field_values_new,
+        &fields_options,
+        &choix_action,
         &global_params,
-        &idents_visible,
     );
-    let impl_prompt_vec_struct = impl_promptable_vec_struct(fields_multiple_add, &global_params);
+    let impl_prompt_vec_struct = impl_promptable_vec_struct(&fields_multiple_add, &global_params);
 
-    let generation = quote! {
+    let mut generation = quote! {
         #impl_prompt_display
         #impl_prompt_struct
         #impl_prompt_vec_struct
     };
+    if cfg!(feature = "inspect") {
+        generation.extend(impl_inspectable_struct(
+            &fields_options_inspect,
+            &global_params,
+            &idents_inspect,
+        ));
+    }
     generation.into()
 }
 
@@ -277,11 +287,11 @@ fn option_type(ty: &syn::Type) -> Option<&syn::Type> {
 
     Some(inner_type)
 }
-
-fn prepare_value(opts: &FieldParams) -> proc_macro2::TokenStream {
+fn prepare_value(opts: &FieldParams) -> TokenStream {
     let name_field = opts.ident;
+    let path: TokenStream = PATH_PROMPTABLEDISPLAY_TRAIT.parse().unwrap();
     if let Some(f) = &opts.function_render {
-        let function: proc_macro2::TokenStream = f.parse().unwrap();
+        let function: TokenStream = f.parse().unwrap();
         quote! {
             let field_value = &self.#name_field;
             let value = #function;
@@ -290,22 +300,23 @@ fn prepare_value(opts: &FieldParams) -> proc_macro2::TokenStream {
         quote! {
         let value =
         if let Some(v) = &self.#name_field {
-            format!("{}", promptable::display::PromptableDisplay::display_short(v))
+            format!("{}", #path::display_short(v))
         } else {
             String::from("None")
         };
         }
     } else {
         quote! {
-            let value = promptable::display::PromptableDisplay::display_short(&self.#name_field);
+            let value = #path::display_short(&self.#name_field);
         }
     }
 }
 
-fn generate_value_from_field(opts: &FieldParams, new_or_add: bool) -> proc_macro2::TokenStream {
+fn generate_value_from_field(opts: &FieldParams, new_or_add: bool) -> TokenStream {
     let msg = &opts.msg;
     let ty = opts.ty;
-
+    let path: TokenStream = PATH_PROMPTABLE_TRAIT.parse().unwrap();
+    let clear_screen: TokenStream = PATH_CLEARSCREEN.parse().unwrap();
     let cancel_value = if new_or_add {
         quote! {return Ok(None)}
     } else {
@@ -348,8 +359,8 @@ fn generate_value_from_field(opts: &FieldParams, new_or_add: bool) -> proc_macro
     } else if opts.visible && !is_option(ty) {
         quote! {
         if let Some(prompt) =  {
-                promptable::clear_screen();
-             <#ty as promptable::Promptable<&str>>::new_by_prompt(#msg)?
+                #clear_screen;
+             <#ty as #path<&str>>::new_by_prompt(#msg)?
             }
          {
         prompt
@@ -362,9 +373,9 @@ fn generate_value_from_field(opts: &FieldParams, new_or_add: bool) -> proc_macro
         // transfer the Option<T> directly
         quote! {
             {
-                promptable::clear_screen();
+                #clear_screen;
                 println!("Escape to put an empty value");
-                <#inner as promptable::Promptable<&str>>::new_by_prompt(#msg)?
+                <#inner as #path<&str>>::new_by_prompt(#msg)?
             }
         }
     } else if !opts.visible && is_option(ty) {

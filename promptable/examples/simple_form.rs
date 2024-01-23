@@ -1,5 +1,5 @@
 use anyhow::Result;
-use promptable::{Date, Promptable};
+use promptable::basics::promptable::{Date, Promptable};
 use promptable_derive::Promptable;
 #[derive(Promptable, Clone)]
 pub struct Form {
@@ -19,6 +19,5 @@ fn main() -> Result<()> {
     // create and manage multiples element.
     let mut forms = VecForm(Vec::new());
     forms.modify_by_prompt(())?;
-
     Ok(())
 }

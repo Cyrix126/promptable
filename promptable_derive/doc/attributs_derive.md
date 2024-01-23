@@ -32,6 +32,12 @@ To change the default name of your Struct that will appear in prompts.
 
 Use only this field for the short_display method. Will take the first 3 visible fields by default. You can apply it on any fields to show multiples fields for short_display.
 
+- ##### `#[promptable(inspect = bool)]`
+
+The field will be suggested in the list of fields to inspect. True by default.
+You need to put it to false if the type or inner type of the field does not implement [Inspectable](Inspectable).
+
+
 - ##### `#[promptable(default = bool)]`
 
 This field will not be prompt for new ones, but can be edited later.  The value will be the default type value. For Option\<T\> type, the value will be None.

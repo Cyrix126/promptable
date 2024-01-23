@@ -1,14 +1,15 @@
-use proc_macro2::Ident;
 use proc_macro2::TokenStream;
 use quote::quote;
 
-use crate::{is_option, option_type, prepare_value, FieldParams, GlobalParams};
+use crate::{
+    is_option, option_type, prepare_value, FieldParams, GlobalParams, PATH_ANYHOW_TRAIT,
+    PATH_CLEARSCREEN, PATH_INQUIRE, PATH_MENU, PATH_PROMPTABLE_TRAIT,
+};
 pub(crate) fn impl_promptable_struct(
-    field_values_new: Vec<TokenStream>,
-    fields_options: Vec<TokenStream>,
-    choix_action: Vec<TokenStream>,
+    field_values_new: &Vec<TokenStream>,
+    fields_options: &Vec<TokenStream>,
+    choix_action: &Vec<TokenStream>,
     global_params: &GlobalParams,
-    idents_visible: &[(&Ident, bool)],
 ) -> proc_macro2::TokenStream {
     let tuple = &global_params.tuple;
     let name = &global_params.name;
@@ -16,30 +17,33 @@ pub(crate) fn impl_promptable_struct(
     // let msg_mod = &global_params.msg_mod;
     let msg_mod = format!("Modification of {}", name);
     let msg_mod_pretty = format!("{}\n{:-<2$}", msg_mod, "-", (msg_mod.len() + 2));
-
-    let method_inspect = generate_method_inspect(&fields_options, idents_visible);
+    let path_promptable: TokenStream = PATH_PROMPTABLE_TRAIT.parse().unwrap();
+    let path_anyhow: TokenStream = PATH_ANYHOW_TRAIT.parse().unwrap();
+    let clear_screen: TokenStream = PATH_CLEARSCREEN.parse().unwrap();
+    let path_inquire: TokenStream = PATH_INQUIRE.parse().unwrap();
+    let path_menu: TokenStream = PATH_MENU.parse().unwrap();
     quote! {
-                impl promptable::Promptable<(#tuple)> for #name {
-                    fn new_by_prompt(params: (#tuple)) -> promptable::anyhow::Result<Option<#name>> {
-                        promptable::clear_screen();
+                impl #path_promptable<(#tuple)> for #name {
+                    fn new_by_prompt(params: (#tuple)) -> #path_anyhow::Result<Option<#name>> {
+                        #clear_screen;
                         #( #params_as_named_value )*
                      return Ok(Some(#name {
                         #( #field_values_new ),*
                         }))
 
                     }
-                     fn modify_by_prompt(&mut self, params: (#tuple)) -> promptable::anyhow::Result<()> {
+                     fn modify_by_prompt(&mut self, params: (#tuple)) -> #path_anyhow::Result<()> {
                         #( #params_as_named_value )*
                          let self_restore = self.clone();
                          let mut last_choice = 0;
                          loop {
-                         promptable::clear_screen();
+                         #clear_screen;
                          let mut options = vec![];
                          #( #fields_options )*
-        options.push(promptable::menu::MenuClassic::CANCEL.to_string());
-        options.push(promptable::menu::MenuClassic::CONFIRM.to_string());
+        options.push(#path_menu::MenuClassic::CANCEL.to_string());
+        options.push(#path_menu::MenuClassic::CONFIRM.to_string());
 
-                         if let Some(choix) = promptable::inquire::Select::new(#msg_mod_pretty, options.clone()).with_starting_cursor(last_choice).prompt_skippable()? {
+                         if let Some(choix) = #path_inquire::Select::new(#msg_mod_pretty, options.clone()).with_starting_cursor(last_choice).prompt_skippable()? {
                          #( #choix_action)*
                          } else {
                              break
@@ -47,14 +51,14 @@ pub(crate) fn impl_promptable_struct(
                          }
                 Ok(())
                      }
-        #method_inspect
     }
     }
 }
-pub(crate) fn add_last_actions_menu_modify(choix_action: &mut Vec<proc_macro2::TokenStream>) {
+pub(crate) fn add_last_actions_menu_modify(choix_action: &mut Vec<TokenStream>) {
+    let path_menu: TokenStream = PATH_MENU.parse().unwrap();
     choix_action.push(quote! {
-        if &choix == promptable::menu::MenuClassic::CANCEL {
-            if promptable::menu::menu_cancel(&self_restore, self)? {
+        if &choix == #path_menu::MenuClassic::CANCEL {
+            if #path_menu::menu_cancel(&self_restore, self)? {
                 return Ok(())
             }
         }
@@ -68,9 +72,11 @@ pub(crate) fn add_last_actions_menu_modify(choix_action: &mut Vec<proc_macro2::T
 
 pub(crate) fn prepare_value_from_field_modify(
     opts: &FieldParams,
-    fields_options: &mut Vec<proc_macro2::TokenStream>,
-    choix_action: &mut Vec<proc_macro2::TokenStream>,
+    fields_options: &mut Vec<TokenStream>,
+    choix_action: &mut Vec<TokenStream>,
 ) {
+    let clear_screen: TokenStream = PATH_CLEARSCREEN.parse().unwrap();
+    let path_promptable: TokenStream = PATH_PROMPTABLE_TRAIT.parse().unwrap();
     let name = &opts.name;
     let ident = opts.ident;
     let nb = opts.nb;
@@ -89,12 +95,12 @@ pub(crate) fn prepare_value_from_field_modify(
         // let nb_choice = nb.checked_sub(1).expect(&format!("{nb}"));
         let nb_choice = nb;
         if let Some(fm) = &opts.function_mod {
-            let function_mod: proc_macro2::TokenStream = fm.parse().unwrap();
+            let function_mod: TokenStream = fm.parse().unwrap();
             choix_action.push(quote! {
                 if choix == options[#nb_choice] {
                     last_choice = #nb_choice;
                     let field = &mut self.#ident;
-                        promptable::clear_screen();
+                        #clear_screen;
                     #function_mod;
                 }
             });
@@ -109,8 +115,8 @@ pub(crate) fn prepare_value_from_field_modify(
                     // the modify prompt will always put Some(v) or do nothing.
                     // if the value is the same, do not change self.#ident.
                     // This way, it will preserve the None if there was one before the modify_by_prompt method.
-                        promptable::clear_screen();
-                    <#inner as promptable::Promptable<&str>>::modify_by_prompt(&mut inner_value, #msg)?;
+                        #clear_screen;
+                    <#inner as #path_promptable<&str>>::modify_by_prompt(&mut inner_value, #msg)?;
                     if inner_value != inner_value_origin {
                         self.#ident = Some(inner_value)
                     }
@@ -122,68 +128,10 @@ pub(crate) fn prepare_value_from_field_modify(
             choix_action.push(quote! {
                 if choix == options[#nb_choice] {
                     last_choice = #nb_choice;
-                        promptable::clear_screen();
-                    <#ty as promptable::Promptable<&str>>::modify_by_prompt(&mut self.#ident, #msg)?
+                        #clear_screen;
+                    <#ty as #path_promptable<&str>>::modify_by_prompt(&mut self.#ident, #msg)?
                 }
             });
         }
-    }
-}
-
-fn generate_method_inspect(
-    fields_options: &Vec<TokenStream>,
-    idents_visible: &[(&Ident, bool)],
-) -> TokenStream {
-    let mut lines_match_ident = Vec::new();
-
-    for (n, (ident, option)) in idents_visible.iter().enumerate() {
-        lines_match_ident.push(if *option {
-            quote! {
-                #n => {if let Some(v) = &self.#ident {
-                    v.inspect()?;
-                } else {
-                        continue
-                    }
-
-                }
-            }
-        } else {
-            quote! {
-                #n => promptable::Promptable::inspect(&self.#ident)?
-            }
-        });
-    }
-
-    if cfg!(feature = "inspect") && !lines_match_ident.is_empty() {
-        quote! {
-                fn inspect(&self) -> promptable::anyhow::Result<()> {
-
-        // for structs, inspect must put human_description
-        // add a menu to select any fields visible
-        // the selected field will have his method inspect called.
-                        let mut options = Vec::new();
-                        // name of field
-                            #( #fields_options)*
-                        options.push("Go back".to_string());
-                        loop {
-                            promptable::clear_screen();
-                            println!("{}", promptable::display::PromptableDisplay::display_human(self));
-                            match inquire::Select::new("Select the field to view", options.clone()).raw_prompt() {
-                    Ok(l) => {
-                            match l.index {
-                                #(#lines_match_ident),*,
-                                _=> break
-                            }
-                        },
-                    Err(inquire::InquireError::OperationCanceled) => break,
-                    Err(e) => return Err(e.into()),
-                            }
-                        }
-                        promptable::clear_screen();
-                        Ok(())
-                    }
-                }
-    } else {
-        quote! {}
     }
 }
