@@ -67,8 +67,16 @@ pub(crate) fn impl_promptable_vec_struct(
                     if let Some(choix) = #path_inquire::Select::new(&msg_menu, options_menu.to_vec()).prompt_skippable()? {
                         match choix {
                             #path_menu::MenuClassic::ADD => self.add_by_prompt_vec(params)?,
-                            #path_menu::MenuClassic::MODIFY => self.modify_by_prompt_vec(params)?,
-                            #path_menu::MenuClassic::DELETE => self.delete_by_prompt_vec(params)?,
+                            #path_menu::MenuClassic::MODIFY => {
+                                if let Some(index) = self.select()? {
+                                self.modify_by_prompt_vec(params, index)?
+                                }
+                            },
+                            #path_menu::MenuClassic::DELETE => {
+                                if let Some(selection) = self.multiselect()? {
+                                self.delete_by_prompt_vec(params, selection)?
+                                }
+                            },
                             #path_menu::MenuClassic::CANCEL => {
                              if #path_menu::menu_cancel(&restore_self, self)? {
                               break;
@@ -92,7 +100,7 @@ pub(crate) fn impl_promptable_vec_struct(
                 }
 
     impl #vec_name {
-                    fn add_by_prompt_vec(&mut self, params: (#tuple))  -> #path_anyhow::Result<()>{
+        pub fn add_by_prompt_vec(&mut self, params: (#tuple))  -> #path_anyhow::Result<()>{
                     // rename tuple parts with name to use with functions if any
                                 #( #params_as_named_value )*
                             // loop {
@@ -105,49 +113,50 @@ pub(crate) fn impl_promptable_vec_struct(
                                 // break
                             // }
                             Ok(())
-                        }
-
-                         fn delete_by_prompt_vec(&mut self, params: (#tuple))  -> #path_anyhow::Result<()> {
-            let choix = match #path_inquire::MultiSelect::new(
-                "Select objects to delete",
-                self.iter().map(|e| <#name as #path_prompt_display>::display_short(e)).collect(),
-            )
-            .raw_prompt_skippable()?
-            {
-                Some(l) => l,
-                None => return Ok(()),
-            };
-            let mut indexes = Vec::new();
-            for c in choix {
-                indexes.push(c.index);
-            }
-            indexes.sort_unstable_by(|a, b| b.cmp(a));
-            for index in indexes {
+        }
+        pub fn delete_by_prompt_vec(&mut self, params: (#tuple), mut selection: Vec<usize>)  -> #path_anyhow::Result<()> {
+            selection.sort_unstable_by(|a, b| b.cmp(a));
+            for index in selection {
                 let element = &self[index];
                     #f_del
                 self.remove(index);
             }
             #clear_screen;
             Ok(())
-                        }
-        fn modify_by_prompt_vec(
+        }
+        pub fn modify_by_prompt_vec(
             &mut self,
             params: (#tuple),
+            index: usize
         ) -> #path_anyhow::Result<()> {
              #clear_screen;
-            let choix = match #path_inquire::Select::new(
+            <#name as #path_promptable<(#tuple)>>::modify_by_prompt(&mut self[index], params)?;
+            Ok(())
+        }
+        pub fn multiselect(&self) -> anyhow::Result<Option<Vec<usize>>> {
+
+            if let Some(l) = #path_inquire::MultiSelect::new(
+                "Select objects to delete",
+                self.iter().map(|e| <#name as #path_prompt_display>::display_short(e)).collect(),
+            )
+            .raw_prompt_skippable()?
+            {
+                    return Ok(Some(l.into_iter().map(|c|c.index).collect::<Vec<usize>>()))
+            } Ok(None)
+        }
+
+        pub fn select(&self) -> Result<Option<usize>> {
+            match #path_inquire::Select::new(
                 "Select object to modify",
                 self.iter().map(|e| <#name as #path_prompt_display>::display_short(e)).collect(),
             )
             .raw_prompt() {
-                    Ok(c) => c,
-                    Err(#path_inquire::error::InquireError::OperationCanceled) => return Ok(()),
+                    Ok(c) => Ok(Some(c.index)),
+                    Err(#path_inquire::error::InquireError::OperationCanceled) => Ok(None),
                     Err(e) => Err(e)?
-                };
-            <#name as #path_promptable<(#tuple)>>::modify_by_prompt(&mut self[choix.index], params)?;
-            Ok(())
-        }
+                }
             }
+        }
         }
 }
 
