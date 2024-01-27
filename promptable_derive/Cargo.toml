@@ -1,6 +1,6 @@
 [package]
 name = "promptable_derive"
-version = "0.7.0"
+version = "0.8.0"
 edition = "2021"                           
 description = "macro derive for promptable" 
 publish = false # TODO
@@ -17,9 +17,10 @@ proc-macro = true
 
 [dependencies]
 syn = "2"
-quote = "1"
+quote = "1.0"
 darling = "0.20"
 proc-macro2 = "1"
+quote_tool_params = {git="https://github.com/Cyrix126/quote_tool_params"}
 [features]
 default=["inspect"]
 inspect=[]

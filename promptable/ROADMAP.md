@@ -8,13 +8,6 @@ For example maybe he wants a much more basic prompt which is not using inquire o
 
 This should be possible with the use of features. Contributors could add a feature which would enable a new backend for prompt.
 
-
-## Preview for menu multiple_by_prompt
-
-Add a preview of present structs in the menu.
-Those structs should have a method to be called. This method should be made by the user and the result should be display-able.
-Can this method be automaticly made and if yes how to override it ?
-
 ## Internationalization
 
 Some prompts possess default messages which are in english. Their provenance is from the inquire crate or from this crate.
@@ -24,15 +17,14 @@ Because the dev user can use any function for any prompts, nothing block a dev f
 
 Why not use the crate [rust-i18n](https://lib.rs/crates/rust-i18n)
 
-## New Struct should be more user friendly.
-
-If a struct call a method new_by_prompt, the user must anwser every questions without the possiblity of going back or cancelling. The user should be able to do that and it is to the dev user to manage the return type or a way should be available to him to change the way the new struct manage the anwser.
-
 ## Use of Dynamic Function instead of reading function from string ?
 
 This could be a better way so that the structs don't create a trait for each of them.
 
-
 ## Good diagnostic
 
 Right now, because of the nature of the macro, it is difficult to diagnose from the user dev side of view. A lot couldbe done in this regard, specially for common errors when making the struct.
+
+## Make a struct of Clap to make shortcuts of menu.
+
+So the dev user can allow end user to pass args to his program and get to choosen data faster. Use clap_shortcuts crate for this.

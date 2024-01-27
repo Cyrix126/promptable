@@ -13,6 +13,11 @@ All structs using this derive trait must also implement the trait Clone. You wil
 Transfer the signature to methods to be able to use functions with parameters. It makes only sense if you use it with fields attributs function*.
 Put here every parameters that will be needed for the functions to be executed inside the methods.
 If you have two functions with attributs, except if you want the same parameter to be passed, you need to put all the parameters for each function.
+Example: 
+```rust,ignore
+#[prompt(params = "msg: &str, is_true: bool,")]
+```
+
 
 - ##### `#[promp(msg_mod = String)]`
 
@@ -66,6 +71,9 @@ Precise if this field should be asked only once when creating a vec of this stru
 ### Functions attributs
 
 Specific functions with any parameters can be used instead of calling the methods of the trait Promptable.
+
+If you want to use in a field a type Promptable which has an implementation with different parameters, you need to use function* attributs to set the method with the right parameters that you need to put in [#prompt(params ="")] if they are not present. 
+
 
 Every functions declared must return Option\<T\>.
 If you want to propagate the error of the function, use Result\<Option\<T\> with the ? operator in the declaration attribut.

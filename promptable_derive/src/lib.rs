@@ -10,22 +10,23 @@ use impl_struct::{
     add_last_actions_menu_modify, impl_promptable_struct, prepare_value_from_field_modify,
 };
 use impl_struct_vec::{generate_line_add_by_prompt, impl_promptable_vec_struct};
-use params::{get_from_params, prepare_value_as_function_param};
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
+use quote_tool_params::{get_from_params, prepare_values_from_params};
 use syn::{self, Attribute, Data, Type};
 
 mod display;
+#[cfg(feature = "inspect")]
 mod impl_inspect;
 mod impl_struct;
 mod impl_struct_vec;
-mod params;
 
 const PATH_PROMPTABLEDISPLAY_TRAIT: &str = "promptable::basics::display::PromptableDisplay";
 const PATH_PROMPTABLE_TRAIT: &str = "promptable::basics::promptable::Promptable";
 const PATH_ANYHOW_TRAIT: &str = "promptable::anyhow";
 const PATH_CLEARSCREEN: &str = "promptable::basics::display::clear_screen()";
 const PATH_INQUIRE: &str = "promptable::inquire";
+#[cfg(feature = "inspect")]
 const PATH_INSPECT: &str = "promptable::inspect::Inspectable";
 const PATH_MENU: &str = "promptable::basics::menu";
 const PATH_DERIVE_MORE: &str = "promptable::derive_more";
@@ -36,6 +37,7 @@ struct FieldOpts {
     default: Option<bool>,
     name: Option<String>,
     visible: Option<bool>,
+    #[cfg(feature = "inspect")]
     inspect: Option<bool>,
     function_render: Option<String>, // field_value mut be in parameter
     msg: Option<String>,
@@ -51,6 +53,7 @@ struct FieldParams<'a> {
     name: String,
     ident: &'a Ident,
     visible: bool,
+    #[cfg(feature = "inspect")]
     inspect: bool,
     ty: &'a Type,
     function_new: &'a Option<String>,
@@ -88,7 +91,7 @@ fn opts2global(ast: &syn::DeriveInput) -> GlobalParams {
         .unwrap();
     let params = &attrs_struct.params.unwrap_or_default();
     let tuple: TokenStream = get_from_params(params, false).parse().unwrap();
-    let params_as_named_value = prepare_value_as_function_param(params);
+    let params_as_named_value = prepare_values_from_params(params, "params");
     GlobalParams {
         custom_prompt_display,
         name,
@@ -144,6 +147,7 @@ fn get_opts_field<'a>(
         ident,
         ty,
         visible,
+        #[cfg(feature = "inspect")]
         inspect: opts.inspect.unwrap_or(true),
         function_new: &opts.function_new,
         function_mod: &opts.function_mod,
@@ -164,6 +168,7 @@ fn impl_promptable(ast: &syn::DeriveInput) -> proc_macro::TokenStream {
     // génération de modify_by_prompt fields
     // options for prompt
     let mut fields_options = vec![];
+    #[cfg(feature = "inspect")]
     let mut fields_options_inspect = vec![];
     // match and action
     let mut choix_action = vec![];
@@ -174,17 +179,20 @@ fn impl_promptable(ast: &syn::DeriveInput) -> proc_macro::TokenStream {
     let mut fields_display_short = None;
     let mut fields_display_human = vec![];
 
+    #[cfg(feature = "inspect")]
     let mut idents_inspect = vec![];
 
     for (nb, (ident, ty, attrs)) in fields(&ast.data).into_iter().enumerate() {
         let opts: FieldOpts = FieldOpts::from_attributes(attrs).expect("Wrong options");
         let field_params = get_opts_field(nb, &opts, ident, ty);
+        #[cfg(feature = "inspect")]
         if field_params.visible && field_params.inspect {
             prepare_value_from_field_modify(
                 &field_params,
                 &mut fields_options_inspect,
                 &mut vec![],
             );
+            #[cfg(feature = "inspect")]
             idents_inspect.push((ident, ty))
         }
         if !global_params.custom_prompt_display {
@@ -234,14 +242,12 @@ fn impl_promptable(ast: &syn::DeriveInput) -> proc_macro::TokenStream {
         #impl_prompt_struct
         #impl_prompt_vec_struct
     };
-    if cfg!(feature = "inspect") {
-        generation.extend(impl_inspectable_struct(
-            &fields_options_inspect,
-            &global_params,
-            &idents_inspect,
-        ));
-    }
-    generation.into()
+    #[cfg(feature = "inspect")]
+    generation.extend(impl_inspectable_struct(
+        &fields_options_inspect,
+        &global_params,
+        &idents_inspect,
+    ));
 }
 
 #[doc(hidden)]
