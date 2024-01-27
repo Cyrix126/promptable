@@ -133,7 +133,7 @@ pub(crate) fn impl_promptable_vec_struct(
             <#name as #path_promptable<(#tuple)>>::modify_by_prompt(&mut self[index], params)?;
             Ok(())
         }
-        pub fn multiselect(&self) -> anyhow::Result<Option<Vec<usize>>> {
+        pub fn multiselect(&self) -> #path_anyhow::Result<Option<Vec<usize>>> {
 
             if let Some(l) = #path_inquire::MultiSelect::new(
                 "Select objects to delete",
@@ -145,7 +145,7 @@ pub(crate) fn impl_promptable_vec_struct(
             } Ok(None)
         }
 
-        pub fn select(&self) -> Result<Option<usize>> {
+        pub fn select(&self) -> #path_anyhow::Result<Option<usize>> {
             match #path_inquire::Select::new(
                 "Select object to modify",
                 self.iter().map(|e| <#name as #path_prompt_display>::display_short(e)).collect(),
