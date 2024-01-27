@@ -248,6 +248,7 @@ fn impl_promptable(ast: &syn::DeriveInput) -> proc_macro::TokenStream {
         &global_params,
         &idents_inspect,
     ));
+    generation.into()
 }
 
 #[doc(hidden)]
