@@ -28,7 +28,7 @@ pub trait Promptable<P> {
 
     /// modify the self value.
     /// Will return a result, Ok(()) if everything went fine or canceled, Err(()) for otherwise.
-    fn modify_by_prompt(&mut self, params: P) -> Result<()>;
+    fn modify_by_prompt(&mut self, params: P) -> Result<bool>;
 }
 
 /// generic default implementation for Vec\<T\>
@@ -46,10 +46,11 @@ where
             Ok(None)
         }
     }
-    fn modify_by_prompt(&mut self, msg: &str) -> Result<()> {
+    fn modify_by_prompt(&mut self, msg: &str) -> Result<bool> {
         let options_menu = MenuClassic::consts();
         // idea: rather than cloning the self and chaning a new self or an old self, why not create a vec and only add what changes and then apply on self if confirmed ?
         let restore_self = self.clone();
+        let mut modified = false;
         loop {
             if self.is_empty() {
                 if let Some(s) = T::new_by_prompt(msg)? {
@@ -59,11 +60,24 @@ where
             clear_screen();
             if let Some(choix) = Select::new(msg, options_menu.to_vec()).prompt_skippable()? {
                 match choix {
-                    MenuClassic::ADD => add_by_prompt_vec(self, msg)?,
-                    MenuClassic::MODIFY => modify_by_prompt_vec(self, msg)?,
-                    MenuClassic::DELETE => delete_by_prompt_vec(self, msg)?,
+                    MenuClassic::ADD => {
+                        if add_by_prompt_vec(self, msg)? {
+                            modified = true
+                        }
+                    }
+                    MenuClassic::MODIFY => {
+                        if modify_by_prompt_vec(self, msg)? {
+                            modified = true
+                        }
+                    }
+                    MenuClassic::DELETE => {
+                        if delete_by_prompt_vec(self, msg)? {
+                            modified = true
+                        }
+                    }
                     MenuClassic::CANCEL => {
                         if menu_cancel(&restore_self, self)? {
+                            modified = false;
                             break;
                         }
                     }
@@ -75,25 +89,29 @@ where
                 }
             }
         }
-        Ok(())
+        Ok(modified)
     }
 }
 
 fn add_by_prompt_vec<T: for<'a> Promptable<&'a str>>(
     vec: &mut Vec<T>,
     msg: &str,
-) -> anyhow::Result<()> {
+) -> anyhow::Result<bool> {
     if let Some(c) = T::new_by_prompt(msg)? {
         vec.push(c);
+        return Ok(true);
     }
-    Ok(())
+    Ok(false)
 }
 
 fn delete_by_prompt_vec<T: for<'a> Promptable<&'a str> + Clone + PromptableDisplay>(
     vec: &mut Vec<T>,
     _msg: &str,
-) -> anyhow::Result<()> {
+) -> anyhow::Result<bool> {
     clear_screen();
+    if vec.is_empty() {
+        return Ok(false);
+    }
     let choix = match inquire::MultiSelect::new(
         "Select objects to delete",
         vec.iter().map(|e: &T| e.display_short()).collect(),
@@ -101,7 +119,7 @@ fn delete_by_prompt_vec<T: for<'a> Promptable<&'a str> + Clone + PromptableDispl
     .raw_prompt_skippable()?
     {
         Some(l) => l,
-        None => return Ok(()),
+        None => return Ok(false),
     };
     let mut indexes = Vec::new();
     for c in choix {
@@ -111,21 +129,20 @@ fn delete_by_prompt_vec<T: for<'a> Promptable<&'a str> + Clone + PromptableDispl
     for index in indexes {
         vec.remove(index);
     }
-    Ok(())
+    Ok(true)
 }
 
 fn modify_by_prompt_vec<T: for<'a> Promptable<&'a str> + Clone + PromptableDisplay>(
     vec: &mut [T],
     msg: &str,
-) -> anyhow::Result<()> {
+) -> anyhow::Result<bool> {
     clear_screen();
     let choix = Select::new(
         "Sélection de l'objet à modifier",
         vec.iter().map(|e: &T| e.display_short()).collect(),
     )
     .raw_prompt()?;
-    vec[choix.index].modify_by_prompt(msg)?;
-    Ok(())
+    Ok(vec[choix.index].modify_by_prompt(msg)?)
 }
 
 /// macro to implement quicly the Promptable trait on basic types.
@@ -142,7 +159,7 @@ impl Promptable<&str> for T {
 
     /// modify the self value.
     /// Will return a anyhow Result, Ok(()) if everything went fine or canceled, Err(()) for otherwise.
-    fn modify_by_prompt(&mut self, msg: &str) -> Result<()> {
+    fn modify_by_prompt(&mut self, msg: &str) -> Result<bool> {
         clear_screen();
         if let Some(prompt) = CustomType::<T>::new(msg)
             .with_default(*self)
@@ -150,8 +167,9 @@ impl Promptable<&str> for T {
             .prompt_skippable()?
         {
             *self = prompt;
+            return Ok(true);
         }
-        Ok(())
+        Ok(false)
     }
 }
 
@@ -160,12 +178,13 @@ impl Promptable<&str> for String {
     fn new_by_prompt(msg: &str) -> Result<Option<Self>> {
         Ok(Text::new(msg).prompt_skippable()?)
     }
-    fn modify_by_prompt(&mut self, msg: &str) -> Result<()> {
+    fn modify_by_prompt(&mut self, msg: &str) -> Result<bool> {
         let prompt = Text::new(msg).with_initial_value(self).prompt_skippable()?;
         if let Some(v) = prompt {
             *self = v;
+            return Ok(true);
         }
-        Ok(())
+        Ok(false)
     }
 }
 
@@ -174,12 +193,13 @@ impl Promptable<&str> for bool {
     fn new_by_prompt(msg: &str) -> Result<Option<Self>> {
         Ok(Confirm::new(msg).prompt_skippable()?)
     }
-    fn modify_by_prompt(&mut self, msg: &str) -> Result<()> {
+    fn modify_by_prompt(&mut self, msg: &str) -> Result<bool> {
         let prompt = Confirm::new(msg).with_default(*self).prompt_skippable()?;
         if let Some(v) = prompt {
             *self = v;
+            return Ok(true);
         }
-        Ok(())
+        Ok(false)
     }
 }
 
@@ -207,7 +227,7 @@ impl Promptable<&str> for Date {
             Ok(None)
         }
     }
-    fn modify_by_prompt(&mut self, msg: &str) -> Result<()> {
+    fn modify_by_prompt(&mut self, msg: &str) -> Result<bool> {
         clear_screen();
         let prompt = DateSelect::new(msg)
             .with_starting_date(self.0)
@@ -215,7 +235,8 @@ impl Promptable<&str> for Date {
             .prompt_skippable()?;
         if let Some(v) = prompt {
             *self = Date(v);
+            return Ok(true);
         }
-        Ok(())
+        Ok(false)
     }
 }

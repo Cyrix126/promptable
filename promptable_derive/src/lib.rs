@@ -327,7 +327,7 @@ fn generate_value_from_field(opts: &FieldParams, new_or_add: bool) -> TokenStrea
     let cancel_value = if new_or_add {
         quote! {return Ok(None)}
     } else {
-        quote! {return Ok(())}
+        quote! {return Ok(false)}
     };
 
     // if function is present, visible and default should not be used for this field.

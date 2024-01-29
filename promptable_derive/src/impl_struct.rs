@@ -32,7 +32,7 @@ pub(crate) fn impl_promptable_struct(
                         }))
 
                     }
-                     fn modify_by_prompt(&mut self, params: (#tuple)) -> #path_anyhow::Result<()> {
+                     fn modify_by_prompt(&mut self, params: (#tuple)) -> #path_anyhow::Result<bool> {
                         #( #params_as_named_value )*
                          let self_restore = self.clone();
                          let mut last_choice = 0;
@@ -49,7 +49,8 @@ pub(crate) fn impl_promptable_struct(
                              break
                          }
                          }
-                Ok(())
+
+                Ok(false)
                      }
     }
     }
@@ -59,13 +60,13 @@ pub(crate) fn add_last_actions_menu_modify(choix_action: &mut Vec<TokenStream>) 
     choix_action.push(quote! {
         if &choix == #path_menu::MenuClassic::CANCEL {
             if #path_menu::menu_cancel(&self_restore, self)? {
-                return Ok(())
+                return Ok(false)
             }
         }
     });
     choix_action.push(quote! {
         if &choix == options.last().unwrap() {
-            return Ok(())
+            return Ok(true)
         }
     });
 }
@@ -129,7 +130,7 @@ pub(crate) fn prepare_value_from_field_modify(
                 if choix == options[#nb_choice] {
                     last_choice = #nb_choice;
                         #clear_screen;
-                    <#ty as #path_promptable<&str>>::modify_by_prompt(&mut self.#ident, #msg)?
+                    <#ty as #path_promptable<&str>>::modify_by_prompt(&mut self.#ident, #msg)?;
                 }
             });
         }

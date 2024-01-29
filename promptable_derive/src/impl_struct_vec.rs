@@ -51,14 +51,16 @@ pub(crate) fn impl_promptable_vec_struct(
                  Ok(None)
                 }
             }
-            fn modify_by_prompt(&mut self, params: (#tuple)) -> #path_anyhow::Result<()> {
+            fn modify_by_prompt(&mut self, params: (#tuple)) -> #path_anyhow::Result<bool> {
                 let options_menu = #path_menu::MenuClassic::consts();
                 // idea: rather than cloning the self and chaning a new self or an old self, why not create a vec and only add what changes and then apply on self if confirmed ?
+                let mut modified = false;
                 let restore_self = self.clone();
                 loop {
                     while self.is_empty() {
                         if let Some(s) = #name::new_by_prompt(params)? {
                             self.push(s);
+                            modified = true;
                         }
                     }
                     #clear_screen;
@@ -66,23 +68,24 @@ pub(crate) fn impl_promptable_vec_struct(
                     let msg_menu = format!("{} {}:", self.len(), value_name);
                     if let Some(choix) = #path_inquire::Select::new(&msg_menu, options_menu.to_vec()).prompt_skippable()? {
                         match choix {
-                            #path_menu::MenuClassic::ADD => self.add_by_prompt_vec(params)?,
+                            #path_menu::MenuClassic::ADD => {
+                                if self.add_by_prompt_vec(params)? {modified = true}},
                             #path_menu::MenuClassic::MODIFY => {
-                                if let Some(index) = self.select()? {
-                                self.modify_by_prompt_vec(params, index)?
-                                }
+                                if let Some(index) = self.select()? { if
+                                    self.modify_by_prompt_vec(params, index)? {modified = true}}
                             },
                             #path_menu::MenuClassic::DELETE => {
-                                if let Some(selection) = self.multiselect()? {
-                                self.delete_by_prompt_vec(params, selection)?
+                                if let Some(selection) = self.multiselect()? { if
+                                self.delete_by_prompt_vec(params, selection)? { modified = true
                                 }
-                            },
+                            } },
                             #path_menu::MenuClassic::CANCEL => {
                              if #path_menu::menu_cancel(&restore_self, self)? {
+                                    modified = false;
                               break;
                              }
                             }
-                            _ => {// confirm
+                            _ => {
                                 if #path_menu::menu_confirm(&restore_self, &self)? {
                                     break;
                                 }
@@ -95,12 +98,12 @@ pub(crate) fn impl_promptable_vec_struct(
                     }
                 }
                     #clear_screen;
-                Ok(())
+                Ok(modified)
             }
                 }
 
     impl #vec_name {
-        pub fn add_by_prompt_vec(&mut self, params: (#tuple))  -> #path_anyhow::Result<()>{
+        pub fn add_by_prompt_vec(&mut self, params: (#tuple))  -> #path_anyhow::Result<bool>{
                     // rename tuple parts with name to use with functions if any
                                 #( #params_as_named_value )*
                             // loop {
@@ -112,31 +115,30 @@ pub(crate) fn impl_promptable_vec_struct(
                          self.push(new);
                                 // break
                             // }
-                            Ok(())
+                            Ok(true)
         }
-        pub fn delete_by_prompt_vec(&mut self, params: (#tuple), mut selection: Vec<usize>)  -> #path_anyhow::Result<()> {
+        pub fn delete_by_prompt_vec(&mut self, params: (#tuple), mut selection: Vec<usize>)  -> #path_anyhow::Result<bool> {
             selection.sort_unstable_by(|a, b| b.cmp(a));
             for index in selection {
                 let element = &self[index];
                     #f_del
                 self.remove(index);
+                    return Ok(true);
             }
-            #clear_screen;
-            Ok(())
+            Ok(false)
         }
         pub fn modify_by_prompt_vec(
             &mut self,
             params: (#tuple),
             index: usize
-        ) -> #path_anyhow::Result<()> {
+        ) -> #path_anyhow::Result<bool> {
              #clear_screen;
-            <#name as #path_promptable<(#tuple)>>::modify_by_prompt(&mut self[index], params)?;
-            Ok(())
+            Ok(<#name as #path_promptable<(#tuple)>>::modify_by_prompt(&mut self[index], params)?)
         }
         pub fn multiselect(&self) -> #path_anyhow::Result<Option<Vec<usize>>> {
 
             if let Some(l) = #path_inquire::MultiSelect::new(
-                "Select objects to delete",
+                "Select objects",
                 self.iter().map(|e| <#name as #path_prompt_display>::display_short(e)).collect(),
             )
             .raw_prompt_skippable()?
@@ -147,7 +149,7 @@ pub(crate) fn impl_promptable_vec_struct(
 
         pub fn select(&self) -> #path_anyhow::Result<Option<usize>> {
             match #path_inquire::Select::new(
-                "Select object to modify",
+                "Select object",
                 self.iter().map(|e| <#name as #path_prompt_display>::display_short(e)).collect(),
             )
             .raw_prompt() {
@@ -182,7 +184,7 @@ pub(crate) fn generate_line_add_by_prompt(
              #ident: if let Some(v) = #f {
                           v
                     } else {
-                        return Ok(())
+                        return Ok(false)
                     }
             }
         }
