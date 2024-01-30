@@ -18,4 +18,6 @@ pub extern crate derive_more;
 #[cfg(feature = "basics")]
 pub extern crate inquire;
 #[cfg(feature = "basics")]
+pub extern crate termion;
+#[cfg(feature = "basics")]
 pub extern crate trait_gen;
