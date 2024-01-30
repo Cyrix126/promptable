@@ -80,7 +80,7 @@ pub(crate) fn impl_promptable_vec_struct(
                     #clear_screen;
                     let value_name = #name_str;
                     let msg_menu = format!("{} {}:", self.len(), value_name);
-                    if let Some(choix) = #path_inquire::Select::new(&msg_menu, options_menu.to_vec()).prompt_skippable()? {
+                    if let Some(choix) = #path_inquire::Select::new(&msg_menu, options_menu.to_vec()).without_filtering().prompt_skippable()? {
                         match choix {
                             #path_menu::MenuClassic::ADD => {
                                 if self.add_by_prompt_vec(params)? {

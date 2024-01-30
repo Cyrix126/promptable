@@ -1,6 +1,6 @@
 [package]
 name = "promptable"
-version = "0.10.0"
+version = "0.10.1"
 edition = "2021"
 description = "library promptable"
 publish = false # TODO need to merge inquire-time into upstream or publish it
