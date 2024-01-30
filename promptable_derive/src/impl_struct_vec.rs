@@ -12,7 +12,8 @@ use crate::PATH_MENU;
 use crate::PATH_PROMPTABLEDISPLAY_TRAIT;
 use crate::PATH_PROMPTABLE_TRAIT;
 pub(crate) fn impl_promptable_vec_struct(
-    fields_multiple_add: &Vec<TokenStream>,
+    prepare_values_fields_add: &Vec<TokenStream>,
+    fields_struct: &Vec<TokenStream>,
     global_params: &GlobalParams,
 ) -> TokenStream {
     let name = &global_params.name;
@@ -106,11 +107,12 @@ pub(crate) fn impl_promptable_vec_struct(
         pub fn add_by_prompt_vec(&mut self, params: (#tuple))  -> #path_anyhow::Result<bool>{
                     // rename tuple parts with name to use with functions if any
                                 #( #params_as_named_value )*
+                #( #prepare_values_fields_add )*
                             // loop {
                                 #clear_screen;
                         // use macro for which fields to ask and how and value to prepare
                 let new = #name {
-                    #( #fields_multiple_add ),*
+                    #( #fields_struct ),*
                 };
                          self.push(new);
                                 // break
@@ -162,26 +164,24 @@ pub(crate) fn impl_promptable_vec_struct(
         }
 }
 
-pub(crate) fn generate_line_add_by_prompt(
+pub(crate) fn generate_values_add_by_prompt(
     opts: &FieldParams,
     value: &proc_macro2::TokenStream,
 ) -> proc_macro2::TokenStream {
     let ident = opts.ident;
     if opts.multiple_once {
         quote! {
-           #ident: {
                 self[0].clone().#ident
-            }
         }
     } else if let Some(f) = &opts.function_add {
         let f: TokenStream = f.parse().unwrap();
         if is_option(opts.ty) {
             quote! {
-                #ident: #f
+                #f
             }
         } else {
             quote! {
-             #ident: if let Some(v) = #f {
+             if let Some(v) = #f {
                           v
                     } else {
                         return Ok(false)
@@ -189,6 +189,6 @@ pub(crate) fn generate_line_add_by_prompt(
             }
         }
     } else {
-        quote! {#ident: #value}
+        quote! {#value}
     }
 }

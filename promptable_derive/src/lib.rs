@@ -9,7 +9,7 @@ use display::{
 use impl_struct::{
     add_last_actions_menu_modify, impl_promptable_struct, prepare_value_from_field_modify,
 };
-use impl_struct_vec::{generate_line_add_by_prompt, impl_promptable_vec_struct};
+use impl_struct_vec::{generate_values_add_by_prompt, impl_promptable_vec_struct};
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
 use quote_tool_params::{get_from_params, prepare_values_from_params};
@@ -163,7 +163,7 @@ fn impl_promptable(ast: &syn::DeriveInput) -> proc_macro::TokenStream {
     let global_params = opts2global(ast);
 
     // génération de new_by_prompt struct fields
-    let mut field_values_new = vec![];
+    let mut fields_struct = vec![];
 
     // génération de modify_by_prompt fields
     // options for prompt
@@ -173,12 +173,11 @@ fn impl_promptable(ast: &syn::DeriveInput) -> proc_macro::TokenStream {
     // match and action
     let mut choix_action = vec![];
 
-    let mut fields_multiple_add = vec![];
-
     let mut fields_display_short_precise = vec![];
     let mut fields_display_short = None;
     let mut fields_display_human = vec![];
-
+    let mut prepare_values_fields_new = vec![];
+    let mut prepare_values_fields_add = vec![];
     #[cfg(feature = "inspect")]
     let mut idents_inspect = vec![];
 
@@ -206,16 +205,24 @@ fn impl_promptable(ast: &syn::DeriveInput) -> proc_macro::TokenStream {
 
         // add the line for this field for new_by_prompt
         let value_new = generate_value_from_field(&field_params, true);
-        let value_add = generate_value_from_field(&field_params, false);
-        field_values_new.push(quote! {
-            #ident: #value_new
+        let value_add = generate_values_add_by_prompt(
+            &field_params,
+            &generate_value_from_field(&field_params, false),
+        );
+        prepare_values_fields_new.push(quote! {
+           let #ident = #value_new;
+        });
+        prepare_values_fields_add.push(quote! {
+           let #ident = #value_add;
+        });
+        fields_struct.push(quote! {
+            #ident
         });
 
         // add the lines for this field for modify_by_prompt
         prepare_value_from_field_modify(&field_params, &mut fields_options, &mut choix_action);
 
         // add line for this field for multiple add_by_prompt
-        fields_multiple_add.push(generate_line_add_by_prompt(&field_params, &value_add));
         // multiple mod
     }
     add_last_actions_menu_modify(&mut choix_action);
@@ -230,12 +237,14 @@ fn impl_promptable(ast: &syn::DeriveInput) -> proc_macro::TokenStream {
         &global_params,
     );
     let impl_prompt_struct = impl_promptable_struct(
-        &field_values_new,
+        &prepare_values_fields_new,
+        &fields_struct,
         &fields_options,
         &choix_action,
         &global_params,
     );
-    let impl_prompt_vec_struct = impl_promptable_vec_struct(&fields_multiple_add, &global_params);
+    let impl_prompt_vec_struct =
+        impl_promptable_vec_struct(&prepare_values_fields_add, &fields_struct, &global_params);
 
     let mut generation = quote! {
         #impl_prompt_display

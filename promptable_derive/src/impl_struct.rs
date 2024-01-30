@@ -6,7 +6,8 @@ use crate::{
     PATH_CLEARSCREEN, PATH_INQUIRE, PATH_MENU, PATH_PROMPTABLE_TRAIT,
 };
 pub(crate) fn impl_promptable_struct(
-    field_values_new: &Vec<TokenStream>,
+    prepare_values_fields_new: &Vec<TokenStream>,
+    fields_struct: &Vec<TokenStream>,
     fields_options: &Vec<TokenStream>,
     choix_action: &Vec<TokenStream>,
     global_params: &GlobalParams,
@@ -26,9 +27,13 @@ pub(crate) fn impl_promptable_struct(
                 impl #path_promptable<(#tuple)> for #name {
                     fn new_by_prompt(params: (#tuple)) -> #path_anyhow::Result<Option<#name>> {
                         #clear_screen;
+                // value from params
                         #( #params_as_named_value )*
+                // value from prompt, one by one so that value after can take already made value.
+                        #( #prepare_values_fields_new )*
+
                      return Ok(Some(#name {
-                        #( #field_values_new ),*
+                        #( #fields_struct ),*
                         }))
 
                     }
