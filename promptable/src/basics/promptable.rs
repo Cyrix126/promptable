@@ -204,7 +204,7 @@ impl Promptable<&str> for bool {
 }
 
 /// Wrapper of time::Date
-#[derive(Clone, Display, Deref, PartialEq)]
+#[derive(Clone, Display, Deref, PartialEq, PartialOrd)]
 pub struct Date(pub DateOrigin);
 
 impl Default for Date {
