@@ -58,7 +58,7 @@ struct FieldParams<'a> {
     ty: &'a Type,
     function_new: &'a Option<String>,
     function_mod: &'a Option<String>,
-    function_add: &'a Option<String>,
+    function_add: &'a Option<String>, // when adding a second time to a vec, this field can have a different behavior of new.
     function_render: &'a Option<String>, // field_value mut be in parameter
     multiple_once: bool,
     short_display: bool,
@@ -70,7 +70,9 @@ struct StructOpts {
     params: Option<String>,
     custom_prompt_display: Option<bool>,
     name: Option<String>,
-    function_del: Option<String>,
+    trigger_add: Option<String>,
+    trigger_del: Option<String>,
+    trigger_mod: Option<String>,
 }
 
 struct GlobalParams {
@@ -78,7 +80,9 @@ struct GlobalParams {
     name: TokenStream,
     params_as_named_value: Vec<TokenStream>,
     tuple: TokenStream,
-    function_del: Option<String>, // can acess element on deletion of element in vec.
+    trigger_add: Option<String>, // can acess added element because it is on the end of self.
+    trigger_del: Option<String>, // can access deleted element with value deleted.
+    trigger_mod: Option<String>, // can acess modified element with value index.
 }
 
 fn opts2global(ast: &syn::DeriveInput) -> GlobalParams {
@@ -97,7 +101,9 @@ fn opts2global(ast: &syn::DeriveInput) -> GlobalParams {
         name,
         params_as_named_value,
         tuple,
-        function_del: attrs_struct.function_del,
+        trigger_add: attrs_struct.trigger_add,
+        trigger_del: attrs_struct.trigger_del,
+        trigger_mod: attrs_struct.trigger_mod,
     }
 }
 

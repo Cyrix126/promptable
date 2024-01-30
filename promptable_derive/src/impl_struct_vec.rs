@@ -21,6 +21,7 @@ pub(crate) fn impl_promptable_vec_struct(
     let tuple = &global_params.tuple;
     let params_as_named_value = &global_params.params_as_named_value;
     let vec_name: TokenStream = format!("Vec{name}").parse().unwrap();
+
     let path_promptable: TokenStream = PATH_PROMPTABLE_TRAIT.parse().unwrap();
     let path_anyhow: TokenStream = PATH_ANYHOW_TRAIT.parse().unwrap();
     let clear_screen: TokenStream = PATH_CLEARSCREEN.parse().unwrap();
@@ -28,14 +29,26 @@ pub(crate) fn impl_promptable_vec_struct(
     let path_menu: TokenStream = PATH_MENU.parse().unwrap();
     let path_prompt_display: TokenStream = PATH_PROMPTABLEDISPLAY_TRAIT.parse().unwrap();
     let path_derive_more: TokenStream = PATH_DERIVE_MORE.parse().unwrap();
-    let f_del = if let Some(f) = &global_params.function_del {
-        let func_del: TokenStream = f.parse().unwrap();
-        quote! {
-            #func_del;
-        }
-    } else {
-        quote! {}
-    };
+    let end_menu = end_menu(&path_menu);
+    let on_escape = on_escape(&path_menu);
+    let trigger_add: TokenStream = global_params
+        .trigger_add
+        .as_deref()
+        .unwrap_or_default()
+        .parse()
+        .unwrap();
+    let trigger_mod: TokenStream = global_params
+        .trigger_mod
+        .as_deref()
+        .unwrap_or_default()
+        .parse()
+        .unwrap();
+    let trigger_del: TokenStream = global_params
+        .trigger_del
+        .as_deref()
+        .unwrap_or_default()
+        .parse()
+        .unwrap();
 
     quote! {
                 // least bad solution ?
@@ -53,7 +66,7 @@ pub(crate) fn impl_promptable_vec_struct(
                 }
             }
             fn modify_by_prompt(&mut self, params: (#tuple)) -> #path_anyhow::Result<bool> {
-                let options_menu = #path_menu::MenuClassic::consts();
+                let options_menu = [#path_menu::MenuClassic::ADD, #path_menu::MenuClassic::MODIFY, #path_menu::MenuClassic::DELETE];
                 // idea: rather than cloning the self and chaning a new self or an old self, why not create a vec and only add what changes and then apply on self if confirmed ?
                 let mut modified = false;
                 let restore_self = self.clone();
@@ -70,32 +83,27 @@ pub(crate) fn impl_promptable_vec_struct(
                     if let Some(choix) = #path_inquire::Select::new(&msg_menu, options_menu.to_vec()).prompt_skippable()? {
                         match choix {
                             #path_menu::MenuClassic::ADD => {
-                                if self.add_by_prompt_vec(params)? {modified = true}},
+                                if self.add_by_prompt_vec(params)? {
+                                    #trigger_add; // trigger can access last added because it is on the end.
+                                    modified = true}},
                             #path_menu::MenuClassic::MODIFY => {
                                 if let Some(index) = self.select()? { if
-                                    self.modify_by_prompt_vec(params, index)? {modified = true}}
+                                    self.modify_by_prompt_vec(params, index)? {
+                                    #trigger_mod; // trigger can access modified element with index. not the precedent value for now.
+                                    modified = true}}
                             },
                             #path_menu::MenuClassic::DELETE => {
-                                if let Some(selection) = self.multiselect()? { if
-                                self.delete_by_prompt_vec(params, selection)? { modified = true
+                                if let Some(selection) = self.multiselect()? {
+                                let deleted = self.delete_by_prompt_vec(params, selection);
+                                    #trigger_del; // trigger can acess vec of deleted elements with value deleted.
+                                    modified = true
+
                                 }
-                            } },
-                            #path_menu::MenuClassic::CANCEL => {
-                             if #path_menu::menu_cancel(&restore_self, self)? {
-                                    modified = false;
-                              break;
-                             }
-                            }
-                            _ => {
-                                if #path_menu::menu_confirm(&restore_self, &self)? {
-                                    break;
-                                }
-                            }
+                            },
+                            #end_menu
                         }
                     } else {
-                             if #path_menu::menu_cancel(&restore_self, self)? {
-                              break;
-                             }
+                        #on_escape
                     }
                 }
                     #clear_screen;
@@ -105,29 +113,22 @@ pub(crate) fn impl_promptable_vec_struct(
 
     impl #vec_name {
         pub fn add_by_prompt_vec(&mut self, params: (#tuple))  -> #path_anyhow::Result<bool>{
-                    // rename tuple parts with name to use with functions if any
                                 #( #params_as_named_value )*
                 #( #prepare_values_fields_add )*
-                            // loop {
                                 #clear_screen;
-                        // use macro for which fields to ask and how and value to prepare
                 let new = #name {
                     #( #fields_struct ),*
                 };
                          self.push(new);
-                                // break
-                            // }
                             Ok(true)
         }
-        pub fn delete_by_prompt_vec(&mut self, params: (#tuple), mut selection: Vec<usize>)  -> #path_anyhow::Result<bool> {
+        pub fn delete_by_prompt_vec(&mut self, params: (#tuple), mut selection: Vec<usize>)  -> Vec<#name> {
             selection.sort_unstable_by(|a, b| b.cmp(a));
+            let mut removed = vec![];
             for index in selection {
-                let element = &self[index];
-                    #f_del
-                self.remove(index);
-                    return Ok(true);
+                removed.push(self.swap_remove(index));
             }
-            Ok(false)
+            removed
         }
         pub fn modify_by_prompt_vec(
             &mut self,
@@ -190,5 +191,46 @@ pub(crate) fn generate_values_add_by_prompt(
         }
     } else {
         quote! {#value}
+    }
+}
+
+fn end_menu(path_menu: &TokenStream) -> TokenStream {
+    if cfg!(feature = "confirm_changes") {
+        quote! {
+                            #path_menu::MenuClassic::CANCEL => {
+                             if #path_menu::menu_cancel(&restore_self, self)? {
+                                    // no way to revert triggers for now. A vec containing information on them executed would need to exist.
+                                    // like the trigger executed and the value given to it.
+                                    // if trigger is trigger(element), then the value of element needs to be stored.
+                                    // so if trigger is trigger(index, &self), &self needs to be stored.
+                                    // if methods of the impl of VecStruct are used, no triggers or revert trigger will be used.
+                                    // the macro needs to analyze the args of the trigger and save their value.
+                                    modified = false;
+                              break;
+                             }
+                            }
+                            _ => {
+                                if #path_menu::menu_confirm(&restore_self, &self)? {
+                                    break;
+                                }
+                            }
+        }
+    } else {
+        quote! {
+                            _ => {}
+        }
+    }
+}
+fn on_escape(path_menu: &TokenStream) -> TokenStream {
+    if cfg!(feature = "confirm-changes") {
+        quote! {
+                  if #path_menu::menu_cancel(&restore_self, self)? {
+                  break;
+                  }
+        }
+    } else {
+        quote! {
+            break;
+        }
     }
 }

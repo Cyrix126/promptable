@@ -1,6 +1,6 @@
 [package]
 name = "promptable"
-version = "0.9.1"
+version = "0.10.0"
 edition = "2021"
 description = "library promptable"
 publish = false # TODO need to merge inquire-time into upstream or publish it
@@ -26,6 +26,7 @@ clap = {version = "4", optional = true}
 default = ["basics", "inspect", "derive"]
 basics = ["inquire/editor", "time", "termion", "anyhow", "derive_more", "trait-gen", "similar"]
 inspect = ["anyhow", "derive", "promptable_derive/inspect"]
+confirm-changes = []
 derive = ["promptable_derive", "basics"]
 
 [package.metadata.docs.rs]
