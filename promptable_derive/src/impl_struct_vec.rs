@@ -19,7 +19,6 @@ pub(crate) fn impl_promptable_vec_struct(
     let name = &global_params.name;
     let name_str = &global_params.name.to_string();
     let tuple = &global_params.tuple;
-    let params_as_named_value = &global_params.params_as_named_value;
     let vec_name: TokenStream = format!("Vec{name}").parse().unwrap();
 
     let path_promptable: TokenStream = PATH_PROMPTABLE_TRAIT.parse().unwrap();
@@ -50,6 +49,7 @@ pub(crate) fn impl_promptable_vec_struct(
         .parse()
         .unwrap();
 
+    let params_as_named_value = &global_params.params_as_named_value;
     quote! {
                 // least bad solution ?
                 #[derive(#path_derive_more::Deref, #path_derive_more::DerefMut, Clone, #path_derive_more::Display)]
@@ -70,6 +70,7 @@ pub(crate) fn impl_promptable_vec_struct(
                 // idea: rather than cloning the self and chaning a new self or an old self, why not create a vec and only add what changes and then apply on self if confirmed ?
                 let mut modified = false;
                 let restore_self = self.clone();
+                        #( #params_as_named_value )*
                 loop {
                     while self.is_empty() {
                         if let Some(s) = #name::new_by_prompt(params)? {
