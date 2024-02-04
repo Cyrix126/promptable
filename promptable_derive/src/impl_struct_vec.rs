@@ -68,7 +68,7 @@ pub(crate) fn impl_promptable_vec_struct(
             fn modify_by_prompt(&mut self, params: #tuple) -> #path_anyhow::Result<bool> {
                 let options_menu = [#path_menu::MenuClassic::ADD, #path_menu::MenuClassic::MODIFY, #path_menu::MenuClassic::DELETE];
                 // idea: rather than cloning the self and chaning a new self or an old self, why not create a vec and only add what changes and then apply on self if confirmed ?
-                                #( #params_as_named_value )*
+                                #params_as_named_value
                 let mut modified = false;
                 let restore_self = self.clone();
 
@@ -116,7 +116,7 @@ pub(crate) fn impl_promptable_vec_struct(
 
     impl #vec_name {
         pub fn add_by_prompt_vec(&mut self, params: #tuple)  -> #path_anyhow::Result<bool>{
-                                #( #params_as_named_value )*
+                               #params_as_named_value
                 #( #prepare_values_fields_add )*
                                 #clear_screen;
                 let new = #name {

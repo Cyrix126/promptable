@@ -78,7 +78,7 @@ struct StructOpts {
 struct GlobalParams {
     custom_prompt_display: bool,
     name: TokenStream,
-    params_as_named_value: Vec<TokenStream>,
+    params_as_named_value: TokenStream,
     tuple: TokenStream,
     trigger_add: Option<String>, // can acess added element because it is on the end of self.
     trigger_del: Option<String>, // can access deleted element with value deleted.
