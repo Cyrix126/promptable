@@ -101,13 +101,13 @@ fn add_euros(price: &f32) -> String {
 }
 
 fn main() -> Result<()> {
-    let clients = vec!["ClientA".to_string(), "ClientB".to_string()];
-    let client = Prestation::new_by_prompt(("New prestation", "Description", &clients))?;
+    let clients = ["ClientA".to_string(), "ClientB".to_string()];
+    let client = Prestation::new_by_prompt(&("New prestation", "Description", &clients))?;
     let mut prestations = VecPrestation(Vec::new());
     if let Some(c) = client {
         prestations.push(c);
     }
-    prestations.modify_by_prompt(("New prestation", "Description", &clients))?;
+    prestations.modify_by_prompt(&("New prestation", "Description", &clients[..]))?;
 
     prestations.inspect_menu()?;
     Ok(())

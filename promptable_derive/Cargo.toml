@@ -1,6 +1,6 @@
 [package]
 name = "promptable_derive"
-version = "0.10.1"
+version = "0.11.0"
 edition = "2021"                           
 description = "macro derive for promptable" 
 publish = false # TODO

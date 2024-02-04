@@ -12,7 +12,7 @@ use impl_struct::{
 use impl_struct_vec::{generate_values_add_by_prompt, impl_promptable_vec_struct};
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
-use quote_tool_params::{get_from_params, prepare_values_from_params};
+use quote_tool_params::{get_borrower, get_from_params, prepare_values_from_params};
 use syn::{self, Attribute, Data, Type};
 
 mod display;
@@ -94,7 +94,24 @@ fn opts2global(ast: &syn::DeriveInput) -> GlobalParams {
         .parse()
         .unwrap();
     let params = &attrs_struct.params.unwrap_or_default();
-    let tuple: TokenStream = get_from_params(params, false).parse().unwrap();
+    let borrower = get_borrower(params);
+
+    let elements_type = get_from_params(params, false);
+    let elements: TokenStream = elements_type.parse().unwrap();
+    let tuple = if elements_type.is_empty() {
+        // if no params, put en empty tuple
+        quote! {
+            ()
+        }
+    } else if elements_type.contains(",") {
+        // if multiple params, put a tuple with a borrow type
+        quote! {
+        #borrower(#elements)
+            }
+    } else {
+        // if only one parameter, put it directly.
+        elements
+    };
     let params_as_named_value = prepare_values_from_params(params, "params");
     GlobalParams {
         custom_prompt_display,

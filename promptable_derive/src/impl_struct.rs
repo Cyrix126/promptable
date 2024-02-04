@@ -24,8 +24,8 @@ pub(crate) fn impl_promptable_struct(
     let path_inquire: TokenStream = PATH_INQUIRE.parse().unwrap();
     let path_menu: TokenStream = PATH_MENU.parse().unwrap();
     quote! {
-                impl #path_promptable<(#tuple)> for #name {
-                    fn new_by_prompt(params: (#tuple)) -> #path_anyhow::Result<Option<#name>> {
+                impl #path_promptable<#tuple> for #name {
+                    fn new_by_prompt(params: #tuple) -> #path_anyhow::Result<Option<#name>> {
                         #clear_screen;
                 // value from params
                         #( #params_as_named_value )*
@@ -37,7 +37,7 @@ pub(crate) fn impl_promptable_struct(
                         }))
 
                     }
-                     fn modify_by_prompt(&mut self, params: (#tuple)) -> #path_anyhow::Result<bool> {
+                     fn modify_by_prompt(&mut self, params: #tuple) -> #path_anyhow::Result<bool> {
                         #( #params_as_named_value )*
                          let self_restore = self.clone();
                          let mut last_choice = 0;
